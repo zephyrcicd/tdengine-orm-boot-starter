@@ -48,6 +48,15 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
         return this;
     }
 
+
+    public <R> TdQueryWrapper<T> selectAlias(String columnName, GetterFunction<R, ?> aliasGetter) {
+        String column = StrUtil.format("{} {}", columnName, LambdaUtil.getUnderlineFieldNameByGetter(aliasGetter));
+
+        String[] columns = {column};
+        addColumnNames(columns);
+        return this;
+    }
+
     public TdQueryWrapper<T> select(String... columnNames) {
         addColumnNames(columnNames);
         return this;
