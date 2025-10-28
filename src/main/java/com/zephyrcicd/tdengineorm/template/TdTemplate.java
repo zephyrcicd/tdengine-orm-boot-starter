@@ -291,7 +291,7 @@ public class TdTemplate {
         return namedParameterJdbcTemplate.update(finalSql, paramsMap);
     }
 
-    private <T, R> List<R> listWithTdLog(String sql, Map<String, Object> paramsMap, Class<R> resultClass) {
+    private <R> List<R> listWithTdLog(String sql, Map<String, Object> paramsMap, Class<R> resultClass) {
         tdLog(sql, paramsMap);
         return jdbcTemplatePlus.list(sql, paramsMap, resultClass);
     }
