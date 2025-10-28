@@ -233,20 +233,25 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
     public TdQueryWrapper<T> orderByAsc(String columnName) {
         if (StrUtil.isNotBlank(orderBy)) {
             orderBy.append(SqlConstant.COMMA);
+            orderBy.append(columnName);
+        } else {
+            orderBy.append(SqlConstant.ORDER_BY).append(columnName);
         }
-        orderBy.append(SqlConstant.ORDER_BY).append(columnName);
         return this;
     }
+
 
 
     public TdQueryWrapper<T> orderByDesc(String columnName) {
         if (StrUtil.isNotBlank(orderBy)) {
             orderBy.append(SqlConstant.COMMA);
+            orderBy.append(columnName);
+        } else {
+            orderBy.append(SqlConstant.ORDER_BY)
+                    .append(columnName)
+                    .append(SqlConstant.BLANK)
+                    .append(SqlConstant.DESC);
         }
-        orderBy.append(SqlConstant.ORDER_BY)
-                .append(columnName)
-                .append(SqlConstant.BLANK)
-                .append(SqlConstant.DESC);
         return this;
     }
 
