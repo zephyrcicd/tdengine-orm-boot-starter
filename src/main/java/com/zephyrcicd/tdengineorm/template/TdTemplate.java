@@ -114,7 +114,7 @@ public class TdTemplate {
                 .pageSize(pageSize)
                 .total(count).build();
         if (count != null && count > 0) {
-            List<R> list = listWithTdLog(wrapper.getSql(), wrapper.getParamsMap(), resultClass);
+            List<R> list = listWithTdLog(wrapper.limit(pageNo, pageSize).getSql(), wrapper.getParamsMap(), resultClass);
             page.setDataList(list);
         }
         return page;
