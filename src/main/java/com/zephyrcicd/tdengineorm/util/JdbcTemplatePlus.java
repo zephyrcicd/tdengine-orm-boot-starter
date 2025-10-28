@@ -51,7 +51,7 @@ public class JdbcTemplatePlus {
         List<Field> allFields = ClassUtil.getAllFields(entityClass);
         StringBuilder insertIntoSql = TdSqlUtil.getInsertIntoSql(CollectionUtils.isEmpty(entityList), defaultTbName, entityClass, allFields, false);
         if (StrUtil.isBlank(insertIntoSql)) {
-            log.warn("JdbcTemplateUtil#saveBatch fail, build sql fail, entityList or fieldList is empty! class:{}", entityClass.getSimpleName());
+            log.warn("JdbcTemplatePlus#saveBatch fail, build sql fail, entityList or fieldList is empty! class:{}", entityClass.getSimpleName());
             return;
         }
 
@@ -73,7 +73,7 @@ public class JdbcTemplatePlus {
 
         StringBuilder initSql = TdSqlUtil.getInsertIntoSql(CollectionUtils.isEmpty(entityList), defaultTbName, entityClass, fields, true);
         if (StrUtil.isBlank(initSql)) {
-            log.warn("JdbcTemplateUtil#saveOrUpdateBatch fail, build sql fail, entityList or fieldList is empty! class:{}", entityClass.getSimpleName());
+            log.warn("JdbcTemplatePlus#saveOrUpdateBatch fail, build sql fail, entityList or fieldList is empty! class:{}", entityClass.getSimpleName());
             return;
         }
 
@@ -91,7 +91,7 @@ public class JdbcTemplatePlus {
     public <T> void saveBatch(String tbName, List<Map<String, Object>> mapList) {
         Map<String, Object> standMap = getStandMap(mapList);
         if (standMap == null) {
-            log.warn("JdbcTemplateUtil#saveBatch fail, map is empty! ");
+            log.warn("JdbcTemplatePlus#saveBatch fail, map is empty! ");
             return;
         }
         StringBuilder insertIntoSql = TdSqlUtil.getInsertIntoSql(tbName, standMap);
@@ -112,13 +112,13 @@ public class JdbcTemplatePlus {
     public <T> void saveOrUpdateBatch(String tbName, List<Map<String, Object>> mapList, String idKeyName) {
         Map<String, Object> standMap = getStandMap(mapList);
         if (standMap == null) {
-            log.warn("JdbcTemplateUtil#saveOrUpdateBatch fail, map is empty! ");
+            log.warn("JdbcTemplatePlus#saveOrUpdateBatch fail, map is empty! ");
             return;
         }
 
         StringBuilder insertIntoSql = TdSqlUtil.getInsertIntoSql(tbName, standMap, idKeyName, true);
         if (StrUtil.isEmpty(insertIntoSql)) {
-            log.warn("JdbcTemplateUtil#saveOrUpdateBatch fail, build sql fail, map is empty! ");
+            log.warn("JdbcTemplatePlus#saveOrUpdateBatch fail, build sql fail, map is empty! ");
             return;
         }
 
@@ -164,7 +164,7 @@ public class JdbcTemplatePlus {
 
             int[] results = namedParameterJdbcTemplate.batchUpdate(insertIntoSql, paramsMapList.toArray(new Map[0]));
             if (log.isDebugEnabled()) {
-                log.debug("JdbcTemplateUtil#doBatchUpdate result:{}, sql: {}", Arrays.stream(results).filter(item -> 1 == item).count(), insertIntoSql);
+                log.debug("JdbcTemplatePlus#doBatchUpdate result:{}, sql: {}", Arrays.stream(results).filter(item -> 1 == item).count(), insertIntoSql);
             }
         }
     }
@@ -185,7 +185,7 @@ public class JdbcTemplatePlus {
 
             int[] results = namedParameterJdbcTemplate.batchUpdate(insertIntoSql, paramsMapList.toArray(new Map[0]));
             if (log.isDebugEnabled()) {
-                log.debug("JdbcTemplateUtil#doBatchUpdateByMap result:{}, sql: {}", Arrays.stream(results).filter(item -> 1 == item).count(), insertIntoSql);
+                log.debug("JdbcTemplatePlus#doBatchUpdateByMap result:{}, sql: {}", Arrays.stream(results).filter(item -> 1 == item).count(), insertIntoSql);
             }
         }
     }
