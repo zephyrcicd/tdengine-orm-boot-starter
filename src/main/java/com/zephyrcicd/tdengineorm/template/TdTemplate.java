@@ -28,10 +28,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -362,6 +359,145 @@ public class TdTemplate {
     }
 
     /**
+     * 批量插入Map数据到指定表（使用默认批次大小）
+     *
+     * <p>
+     * 将List中的所有Map插入到同一张指定的表中。
+     * 适用于无需实体类的灵活批量插入场景，Map的key为列名，value为列值。
+     * </p>
+     *
+     * <p><b>适用场景：</b>从JSON/API批量导入数据、无需实体类的批量插入、动态字段场景</p>
+     *
+     * @param tableName 表名
+     * @param dataList  数据列表（每个Map代表一行数据）
+     * @return 每批插入影响的行数数组
+     */
+    public int[] batchInsert(String tableName, List<Map<String, Object>> dataList) {
+        return batchInsert(tableName, dataList, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * 批量插入Map数据到指定表（自定义批次大小）
+     *
+     * <p>
+     * 将List中的所有Map插入到同一张指定的表中，支持自定义每批次大小。
+     * 适用于大数据量场景，可通过调整pageSize控制每批SQL的大小。
+     * </p>
+     *
+     * <p><b>注意事项：</b></p>
+     * <ul>
+     *     <li>所有Map必须包含相同的key（列名）</li>
+     *     <li>Map的key必须与表的列名一致</li>
+     * </ul>
+     *
+     * <p><b>适用场景：</b>大批量Map数据导入、自定义批次控制、性能优化场景</p>
+     *
+     * @param tableName 表名
+     * @param dataList  数据列表（每个Map代表一行数据）
+     * @param pageSize  每批次大小
+     * @return 每批插入影响的行数数组
+     */
+    public int[] batchInsert(String tableName, List<Map<String, Object>> dataList, int pageSize) {
+        AssertUtil.notBlank(tableName, new TdOrmException(TdOrmExceptionCode.TABLE_NAME_BLANK));
+        if (CollectionUtils.isEmpty(dataList)) {
+            return new int[0];
+        }
+
+        // 分批进行插入
+        List<List<Map<String, Object>>> partition = ListUtil.partition(dataList, pageSize);
+        List<Integer> resultList = new ArrayList<>();
+
+        for (List<Map<String, Object>> batch : partition) {
+            Map<String, Object> paramsMap = new HashMap<>(batch.size() * 10);
+            String sql = buildBatchInsertMapSql(tableName, batch, paramsMap);
+            int singleResult = namedParameterJdbcTemplate.update(sql, paramsMap);
+            if (log.isDebugEnabled()) {
+                log.debug("{} ===== execute result ====>{}", sql, singleResult);
+            }
+            resultList.add(singleResult);
+        }
+
+        return resultList.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /**
+     * 批量插入Map数据到不同表（使用策略动态生成表名，默认批次大小）
+     *
+     * <p>
+     * List中的每个Map可能插入到不同的表中，通过策略动态生成表名。
+     * 会自动按表名分组，相同表名的Map合并为一条批量INSERT语句。
+     * </p>
+     *
+     * <p><b>适用场景：</b>多设备数据批量上报、基于Map的动态分表、灵活的批量数据处理</p>
+     *
+     * @param dataList 数据列表（每个Map代表一行数据）
+     * @param strategy Map表名称策略
+     * @return 每批插入影响的行数数组
+     */
+    public int[] batchInsert(List<Map<String, Object>> dataList, MapTableNameStrategy strategy) {
+        return batchInsert(dataList, strategy, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * 批量插入Map数据到不同表（使用策略动态生成表名，自定义批次大小）
+     *
+     * <p>
+     * List中的每个Map可能插入到不同的表中，通过策略动态生成表名。
+     * 会自动按表名分组，相同表名的Map合并为一条批量INSERT语句。
+     * 每个分组内部会按照指定的pageSize进行分批插入，避免单次SQL过大。
+     * </p>
+     *
+     * <p><b>注意事项：</b></p>
+     * <ul>
+     *     <li>同一分组（同一表）的所有Map必须包含相同的key（列名）</li>
+     *     <li>数据会先按表名分组，再按pageSize分批</li>
+     * </ul>
+     *
+     * <p><b>适用场景：</b>大批量多设备数据上报、基于Map的动态分表、自定义批次控制</p>
+     *
+     * @param dataList 数据列表（每个Map代表一行数据）
+     * @param strategy Map表名称策略
+     * @param pageSize 每批次大小
+     * @return 每批插入影响的行数数组
+     */
+    public int[] batchInsert(List<Map<String, Object>> dataList, MapTableNameStrategy strategy, int pageSize) {
+        if (CollectionUtils.isEmpty(dataList)) {
+            return new int[0];
+        }
+
+        // 按照命名策略对数据进行分组,相同表名的数据放在一起
+        Map<String, List<Map<String, Object>>> tableGroupMap = new HashMap<>();
+
+        for (Map<String, Object> dataMap : dataList) {
+            String tbName = strategy.getTableName(dataMap);
+            AssertUtil.notBlank(tbName, new TdOrmException(TdOrmExceptionCode.TABLE_NAME_BLANK));
+            tableGroupMap.computeIfAbsent(tbName, k -> new ArrayList<>()).add(dataMap);
+        }
+
+        // 对每个分组分别进行批量插入
+        List<Integer> resultList = new ArrayList<>();
+        for (Map.Entry<String, List<Map<String, Object>>> entry : tableGroupMap.entrySet()) {
+            String tbName = entry.getKey();
+            List<Map<String, Object>> groupDataList = entry.getValue();
+
+            // 以防数据量过大, 分批进行插入
+            List<List<Map<String, Object>>> partition = ListUtil.partition(groupDataList, pageSize);
+
+            for (List<Map<String, Object>> batch : partition) {
+                Map<String, Object> paramsMap = new HashMap<>(batch.size() * 10);
+                String sql = buildBatchInsertMapSql(tbName, batch, paramsMap);
+                int singleResult = namedParameterJdbcTemplate.update(sql, paramsMap);
+                if (log.isDebugEnabled()) {
+                    log.debug("{} ===== execute result ====>{}", sql, singleResult);
+                }
+                resultList.add(singleResult);
+            }
+        }
+
+        return resultList.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /**
      * 使用 USING 语法批量插入子表数据（默认表名策略，默认批次大小）
      *
      * <p>
@@ -516,6 +652,50 @@ public class TdTemplate {
             return null;
         }
         return list.get(0);
+    }
+
+    /**
+     * 构建批量插入Map的SQL语句
+     *
+     * @param tableName 表名
+     * @param dataList  Map数据列表
+     * @param paramsMap 参数Map（输出参数）
+     * @return 完整的INSERT SQL语句
+     */
+    private String buildBatchInsertMapSql(String tableName, List<Map<String, Object>> dataList, Map<String, Object> paramsMap) {
+        // 使用第一个Map的keys作为列名
+        Map<String, Object> firstMap = dataList.get(0);
+        Set<String> columnNames = firstMap.keySet();
+
+        // 构建INSERT前缀: INSERT INTO table_name (col1, col2, col3)
+        StringBuilder sql = new StringBuilder(SqlConstant.INSERT_INTO)
+                .append(tableName)
+                .append(SqlConstant.LEFT_BRACKET);
+
+        for (String columnName : columnNames) {
+            sql.append(columnName).append(SqlConstant.COMMA);
+        }
+        sql.deleteCharAt(sql.length() - 1); // 删除最后的逗号
+        sql.append(") VALUES ");
+
+        // 构建VALUES部分: (:col1_0, :col2_0), (:col1_1, :col2_1), ...
+        for (int i = 0; i < dataList.size(); i++) {
+            sql.append("(");
+            Map<String, Object> dataMap = dataList.get(i);
+
+            for (String columnName : columnNames) {
+                String paramName = columnName + "_" + i; // 参数名: columnName_index
+                sql.append(SqlConstant.COLON).append(paramName).append(SqlConstant.COMMA);
+                paramsMap.put(paramName, dataMap.get(columnName));
+            }
+
+            sql.deleteCharAt(sql.length() - 1); // 删除最后的逗号
+            sql.append("), ");
+        }
+
+        sql.delete(sql.length() - 2, sql.length()); // 删除最后的", "
+
+        return sql.toString();
     }
 
     private static <T> void joinInsetSqlSuffix(List<T> list, StringBuilder finalSql, Map<String, Object> paramsMap) {

@@ -387,4 +387,84 @@ public class TdTemplateInsertExamples {
 
         System.out.println("批量插入完成，总影响行数: " + Arrays.stream(rows).sum());
     }
+
+    // ==================== 批量插入Map示例 ====================
+
+    /**
+     * 示例13: 批量插入Map数据到指定表
+     */
+    public void example13_batchInsertMapToSingleTable(TdTemplate tdTemplate) {
+        // 创建Map数据列表（例如从JSON API获取的数据）
+        List<Map<String, Object>> dataList = new ArrayList<>();
+        long baseTime = System.currentTimeMillis();
+
+        for (int i = 0; i < 100; i++) {
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("device_id", "device001");
+            dataMap.put("location", "Beijing");
+            dataMap.put("temperature", 25.0 + i * 0.1);
+            dataMap.put("humidity", 60.0 + i * 0.1);
+            dataMap.put("ts", baseTime + i * 1000);
+            dataList.add(dataMap);
+        }
+
+        // 批量插入到指定表
+        int[] rows = tdTemplate.batchInsert("sensor_device001", dataList);
+        System.out.println("批量插入完成，批次数: " + rows.length);
+        System.out.println("总影响行数: " + Arrays.stream(rows).sum());
+    }
+
+    /**
+     * 示例14: 批量插入Map数据到不同表（使用策略）
+     */
+    public void example14_batchInsertMapToDifferentTables(TdTemplate tdTemplate) {
+        // 创建多个设备的Map数据（每个Map可能插入到不同表）
+        List<Map<String, Object>> dataList = new ArrayList<>();
+        long baseTime = System.currentTimeMillis();
+
+        // 设备1的数据
+        for (int i = 0; i < 50; i++) {
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("device_id", "device001");
+            dataMap.put("location", "Beijing");
+            dataMap.put("temperature", 25.0 + i * 0.1);
+            dataMap.put("humidity", 60.0 + i * 0.1);
+            dataMap.put("ts", baseTime + i * 1000);
+            dataList.add(dataMap);
+        }
+
+        // 设备2的数据
+        for (int i = 0; i < 50; i++) {
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("device_id", "device002");
+            dataMap.put("location", "Shanghai");
+            dataMap.put("temperature", 26.0 + i * 0.1);
+            dataMap.put("humidity", 65.0 + i * 0.1);
+            dataMap.put("ts", baseTime + i * 1000);
+            dataList.add(dataMap);
+        }
+
+        // 设备3的数据
+        for (int i = 0; i < 50; i++) {
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("device_id", "device003");
+            dataMap.put("location", "Shenzhen");
+            dataMap.put("temperature", 27.0 + i * 0.1);
+            dataMap.put("humidity", 70.0 + i * 0.1);
+            dataMap.put("ts", baseTime + i * 1000);
+            dataList.add(dataMap);
+        }
+
+        // 定义表名策略：根据device_id生成表名
+        MapTableNameStrategy strategy = map ->
+                "sensor_" + map.get("device_id");
+
+        // 批量插入，会自动按表名分组
+        // device001的数据会插入到sensor_device001表
+        // device002的数据会插入到sensor_device002表
+        // device003的数据会插入到sensor_device003表
+        int[] rows = tdTemplate.batchInsert(dataList, strategy);
+        System.out.println("批量插入完成，批次数: " + rows.length);
+        System.out.println("总影响行数: " + Arrays.stream(rows).sum());
+    }
 }

@@ -167,6 +167,7 @@ public class IoTDataService {
 - 示例6-7: 批量插入到不同子表（默认/自定义批次大小）
 - 示例8-10: 批量USING插入（默认/自定义策略/自定义批次）
 - 示例11-12: 复杂场景（时间分表、Lambda表达式）
+- 示例13-14: 批量插入Map数据（指定表名、策略表名）
 
 **重要说明**:
 - 这些是纯示例代码，不是可运行的测试类
@@ -201,6 +202,15 @@ public class IoTDataService {
         EntityTableNameStrategy<SensorData> strategy = entity ->
             "sensor_" + entity.getDeviceId();
         tdTemplate.batchInsert(SensorData.class, dataList, strategy);
+    }
+
+    public void batchSaveMapData(List<Map<String, Object>> dataList) {
+        // 示例13: 批量插入Map数据到指定表
+        tdTemplate.batchInsert("sensor_device001", dataList);
+
+        // 示例14: 批量插入Map数据到不同表（使用策略）
+        MapTableNameStrategy strategy = map -> "sensor_" + map.get("device_id");
+        tdTemplate.batchInsert(dataList, strategy);
     }
 }
 ```
