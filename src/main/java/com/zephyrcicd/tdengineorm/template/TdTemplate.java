@@ -1,11 +1,10 @@
-package com.zephyrcicd.tdengineorm.repository;
+package com.zephyrcicd.tdengineorm.template;
 
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.lang.Pair;
 import cn.hutool.json.JSONUtil;
 import com.zephyrcicd.tdengineorm.annotation.TdTag;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
-import com.zephyrcicd.tdengineorm.constant.TdSqlConstant;
 import com.zephyrcicd.tdengineorm.dto.Page;
 import com.zephyrcicd.tdengineorm.enums.TdLogLevelEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
@@ -34,14 +33,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * TDengine工具类
+ * TDengine 数据访问模板类
+ * 提供对 TDengine 数据库的 CRUD 操作，支持动态表名、批量插入等功能
  *
  * @author Zephyr
  */
 @Slf4j
 @Setter
 @RequiredArgsConstructor
-public class TDengineRepository {
+public class TdTemplate {
 
     private final JdbcTemplatePlus jdbcTemplatePlus;
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;

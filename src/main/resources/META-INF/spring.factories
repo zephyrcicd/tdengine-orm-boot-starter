@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.zephyrcicd.tdengineorm.config.TDengineOrmAutoConfiguration
+com.zephyrcicd.tdengineorm.config.TdOrmAutoConfiguration

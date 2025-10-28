@@ -7,14 +7,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * TDengine ORM 配置类
- * 
+ *
  * @author Zephyr
  */
 @Data
-@ConfigurationProperties(prefix = TDengineOrmConfig.PREFIX)
-public class TDengineOrmConfig {
+@ConfigurationProperties(prefix = TdOrmConfig.PREFIX)
+public class TdOrmConfig {
 
-    public static final String PREFIX = "tdengine-orm";
+    public static final String PREFIX = "td-orm";
 
     /**
      * 是否启用 TDengine ORM 自动配置

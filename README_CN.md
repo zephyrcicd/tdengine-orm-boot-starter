@@ -28,7 +28,7 @@
     ```
 2. 在 `application.yml` 中配置数据库连接
 3. 使用 `@TdTable` 和 `@TdTag` 注解创建实体类
-4. 在服务类中注入 `TDengineRepository` 开始使用
+4. 在服务类中注入 `TdTemplate` 开始使用
 
 ## 详细使用指南
 
@@ -107,7 +107,7 @@
 
 ##### application.yml 示例
 ```yaml
-tdengine-orm:
+td-orm:
   enabled: true  # 可选，默认为 true
   url: jdbc:TAOS://localhost:6030/test
   username: root
@@ -118,37 +118,37 @@ tdengine-orm:
 
 ##### application.properties 示例
 ```properties
-tdengine-orm.enabled=true
-tdengine-orm.url=jdbc:TAOS://localhost:6030/test
-tdengine-orm.username=root
-tdengine-orm.password=taosdata
-tdengine-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
-tdengine-orm.log-level=ERROR
+td-orm.enabled=true
+td-orm.url=jdbc:TAOS://localhost:6030/test
+td-orm.username=root
+td-orm.password=taosdata
+td-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
+td-orm.log-level=ERROR
 ```
 
-#### 4. 使用 TDengineRepository
+#### 4. 使用 TdTemplate
 
-在你的服务类中注入和使用 `TDengineRepository`：
+在你的服务类中注入和使用 `TdTemplate`：
 
 ```java
 @Service
 public class IoTDataService {
-    
+
     @Autowired
-    private TDengineRepository tdengineRepository;
-    
+    private TdTemplate tdTemplate;
+
     public void saveData(SensorData data) {
         // 插入单条数据
-        tdengineRepository.insert(data);
+        tdTemplate.insert(data);
     }
-    
+
     public List<SensorData> findData() {
         // 查询数据
         TdQueryWrapper<SensorData> wrapper = TdWrappers.queryWrapper(SensorData.class)
                 .selectAll()
                 .orderByDesc("ts")
                 .limit(100);
-        return tdengineRepository.list(wrapper);
+        return tdTemplate.list(wrapper);
     }
 }
 ```
@@ -183,7 +183,7 @@ public class SensorData {
 - `tdengineJdbcTemplate` - TDengine 专用的 JdbcTemplate
 - `tdengineNamedParameterJdbcTemplate` - TDengine 专用的 NamedParameterJdbcTemplate
 - `jdbcTemplatePlus` - 封装的增强 JdbcTemplate
-- `tdengineRepository` - TDengine 仓库类
+- `tdTemplate` - TDengine 数据访问模板类
 
 #### 连接池选择逻辑
 
@@ -307,14 +307,14 @@ public class CustomDataSourceConfig {
 如果需要禁用 TDengine ORM 的自动配置，可以在配置文件中设置：
 
 ```yaml
-tdengine-orm:
+td-orm:
   enabled: false
 ```
 
 或者在启动类上排除自动配置：
 
 ```java
-@SpringBootApplication(exclude = {TDengineOrmAutoConfiguration.class})
+@SpringBootApplication(exclude = {TdOrmAutoConfiguration.class})
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

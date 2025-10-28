@@ -28,7 +28,7 @@
     ```
 2. Configure database connection in `application.yml`
 3. Create entity classes with `@TdTable` and `@TdTag` annotations
-4. Inject `TDengineRepository` in your service class and start using it
+4. Inject `TdTemplate` in your service class and start using it
 
 ## Detailed Usage Guide
 
@@ -107,7 +107,7 @@ Configure TDengine connection information in `application.yml` or `application.p
 
 ##### application.yml Example
 ```yaml
-tdengine-orm:
+td-orm:
   enabled: true  # Optional, defaults to true
   url: jdbc:TAOS://localhost:6030/test
   username: root
@@ -118,37 +118,37 @@ tdengine-orm:
 
 ##### application.properties Example
 ```properties
-tdengine-orm.enabled=true
-tdengine-orm.url=jdbc:TAOS://localhost:6030/test
-tdengine-orm.username=root
-tdengine-orm.password=taosdata
-tdengine-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
-tdengine-orm.log-level=ERROR
+td-orm.enabled=true
+td-orm.url=jdbc:TAOS://localhost:6030/test
+td-orm.username=root
+td-orm.password=taosdata
+td-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
+td-orm.log-level=ERROR
 ```
 
-#### 4. Using TDengineRepository
+#### 4. Using TdTemplate
 
-Inject and use `TDengineRepository` in your service class:
+Inject and use `TdTemplate` in your service class:
 
 ```java
 @Service
 public class IoTDataService {
-    
+
     @Autowired
-    private TDengineRepository tdengineRepository;
-    
+    private TdTemplate tdTemplate;
+
     public void saveData(SensorData data) {
         // Insert single record
-        tdengineRepository.insert(data);
+        tdTemplate.insert(data);
     }
-    
+
     public List<SensorData> findData() {
         // Query data
         TdQueryWrapper<SensorData> wrapper = TdWrappers.queryWrapper(SensorData.class)
                 .selectAll()
                 .orderByDesc("ts")
                 .limit(100);
-        return tdengineRepository.list(wrapper);
+        return tdTemplate.list(wrapper);
     }
 }
 ```
@@ -183,7 +183,7 @@ The starter automatically creates the following beans:
 - `tdengineJdbcTemplate` - TDengine-specific JdbcTemplate
 - `tdengineNamedParameterJdbcTemplate` - TDengine-specific NamedParameterJdbcTemplate
 - `jdbcTemplatePlus` - Enhanced JdbcTemplate wrapper
-- `tdengineRepository` - TDengine repository class
+- `tdTemplate` - TDengine template class for data access operations
 
 #### Connection Pool Selection Logic
 
@@ -307,14 +307,14 @@ If you don't provide a custom DataSource bean, the starter will use the followin
 To disable TDengine ORM auto-configuration, set in your configuration file:
 
 ```yaml
-tdengine-orm:
+td-orm:
   enabled: false
 ```
 
 Or exclude the auto-configuration in your startup class:
 
 ```java
-@SpringBootApplication(exclude = {TDengineOrmAutoConfiguration.class})
+@SpringBootApplication(exclude = {TdOrmAutoConfiguration.class})
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

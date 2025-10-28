@@ -1,7 +1,7 @@
 package com.zephyrcicd.tdengineorm.config;
 
 import cn.hutool.core.util.StrUtil;
-import com.zephyrcicd.tdengineorm.repository.TDengineRepository;
+import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import com.zephyrcicd.tdengineorm.util.JdbcTemplatePlus;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -10,8 +10,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.relational.core.dialect.Dialect;
-import org.springframework.data.relational.core.dialect.MySqlDialect;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -23,19 +21,13 @@ import javax.sql.DataSource;
  * @author Zephyr
  */
 @Configuration
-@EnableConfigurationProperties(TDengineOrmConfig.class)
-@ConditionalOnProperty(prefix = TDengineOrmConfig.PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
-public class TDengineOrmAutoConfiguration {
+@EnableConfigurationProperties(TdOrmConfig.class)
+@ConditionalOnProperty(prefix = TdOrmConfig.PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
+public class TdOrmAutoConfiguration {
 
     public static final String TDENGINE_DATA_SOURCE = "tdengineDataSource";
     public static final String TDENGINE_JDBC_TEMPLATE = "tdengineJdbcTemplate";
     public static final String TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE = "tdengineNamedParameterJdbcTemplate";
-
-    @Bean
-    public Dialect jdbcDialect() {
-        return new MySqlDialect() {
-        };
-    }
 
     /**
      * 当 Druid 连接池存在时，创建 Druid DataSource
@@ -44,18 +36,18 @@ public class TDengineOrmAutoConfiguration {
     @Bean(TDENGINE_DATA_SOURCE)
     @ConditionalOnClass(name = "com.alibaba.druid.pool.DruidDataSource")
     @ConditionalOnMissingBean(name = TDENGINE_DATA_SOURCE)
-    public DataSource druidDataSource(TDengineOrmConfig tdengineOrmConfig) {
+    public DataSource druidDataSource(TdOrmConfig tdOrmConfig) {
         try {
             Class<?> druidDataSourceClass = Class.forName("com.alibaba.druid.pool.DruidDataSource");
             Object druidDataSource = druidDataSourceClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StrUtil.isNotBlank(tdengineOrmConfig.getUrl())) {
-                druidDataSourceClass.getMethod("setUrl", String.class).invoke(druidDataSource, tdengineOrmConfig.getUrl());
+            if (StrUtil.isNotBlank(tdOrmConfig.getUrl())) {
+                druidDataSourceClass.getMethod("setUrl", String.class).invoke(druidDataSource, tdOrmConfig.getUrl());
             }
-            druidDataSourceClass.getMethod("setUsername", String.class).invoke(druidDataSource, tdengineOrmConfig.getUsername());
-            druidDataSourceClass.getMethod("setPassword", String.class).invoke(druidDataSource, tdengineOrmConfig.getPassword());
-            druidDataSourceClass.getMethod("setDriverClassName", String.class).invoke(druidDataSource, tdengineOrmConfig.getDriverClassName());
+            druidDataSourceClass.getMethod("setUsername", String.class).invoke(druidDataSource, tdOrmConfig.getUsername());
+            druidDataSourceClass.getMethod("setPassword", String.class).invoke(druidDataSource, tdOrmConfig.getPassword());
+            druidDataSourceClass.getMethod("setDriverClassName", String.class).invoke(druidDataSource, tdOrmConfig.getDriverClassName());
 
             // 设置 Druid 特有配置
             druidDataSourceClass.getMethod("setInitialSize", int.class).invoke(druidDataSource, 5);
@@ -80,7 +72,7 @@ public class TDengineOrmAutoConfiguration {
     @Bean(TDENGINE_DATA_SOURCE)
     @ConditionalOnClass(name = "com.zaxxer.hikari.HikariDataSource")
     @ConditionalOnMissingBean(name = TDENGINE_DATA_SOURCE)
-    public DataSource hikariDataSource(TDengineOrmConfig tdengineOrmConfig) {
+    public DataSource hikariDataSource(TdOrmConfig tdOrmConfig) {
         try {
             Class<?> hikariConfigClass = Class.forName("com.zaxxer.hikari.HikariConfig");
             Class<?> hikariDataSourceClass = Class.forName("com.zaxxer.hikari.HikariDataSource");
@@ -88,12 +80,12 @@ public class TDengineOrmAutoConfiguration {
             Object hikariConfig = hikariConfigClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StrUtil.isNotBlank(tdengineOrmConfig.getUrl())) {
-                hikariConfigClass.getMethod("setJdbcUrl", String.class).invoke(hikariConfig, tdengineOrmConfig.getUrl());
+            if (StrUtil.isNotBlank(tdOrmConfig.getUrl())) {
+                hikariConfigClass.getMethod("setJdbcUrl", String.class).invoke(hikariConfig, tdOrmConfig.getUrl());
             }
-            hikariConfigClass.getMethod("setUsername", String.class).invoke(hikariConfig, tdengineOrmConfig.getUsername());
-            hikariConfigClass.getMethod("setPassword", String.class).invoke(hikariConfig, tdengineOrmConfig.getPassword());
-            hikariConfigClass.getMethod("setDriverClassName", String.class).invoke(hikariConfig, tdengineOrmConfig.getDriverClassName());
+            hikariConfigClass.getMethod("setUsername", String.class).invoke(hikariConfig, tdOrmConfig.getUsername());
+            hikariConfigClass.getMethod("setPassword", String.class).invoke(hikariConfig, tdOrmConfig.getPassword());
+            hikariConfigClass.getMethod("setDriverClassName", String.class).invoke(hikariConfig, tdOrmConfig.getDriverClassName());
 
             // 设置 HikariCP 特有配置
             hikariConfigClass.getMethod("setMaximumPoolSize", int.class).invoke(hikariConfig, 20);
@@ -115,18 +107,18 @@ public class TDengineOrmAutoConfiguration {
     @Bean(TDENGINE_DATA_SOURCE)
     @ConditionalOnClass(name = "org.apache.commons.dbcp2.BasicDataSource")
     @ConditionalOnMissingBean(name = TDENGINE_DATA_SOURCE)
-    public DataSource dbcp2DataSource(TDengineOrmConfig tdengineOrmConfig) {
+    public DataSource dbcp2DataSource(TdOrmConfig tdOrmConfig) {
         try {
             Class<?> basicDataSourceClass = Class.forName("org.apache.commons.dbcp2.BasicDataSource");
             Object basicDataSource = basicDataSourceClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StrUtil.isNotBlank(tdengineOrmConfig.getUrl())) {
-                basicDataSourceClass.getMethod("setUrl", String.class).invoke(basicDataSource, tdengineOrmConfig.getUrl());
+            if (StrUtil.isNotBlank(tdOrmConfig.getUrl())) {
+                basicDataSourceClass.getMethod("setUrl", String.class).invoke(basicDataSource, tdOrmConfig.getUrl());
             }
-            basicDataSourceClass.getMethod("setUsername", String.class).invoke(basicDataSource, tdengineOrmConfig.getUsername());
-            basicDataSourceClass.getMethod("setPassword", String.class).invoke(basicDataSource, tdengineOrmConfig.getPassword());
-            basicDataSourceClass.getMethod("setDriverClassName", String.class).invoke(basicDataSource, tdengineOrmConfig.getDriverClassName());
+            basicDataSourceClass.getMethod("setUsername", String.class).invoke(basicDataSource, tdOrmConfig.getUsername());
+            basicDataSourceClass.getMethod("setPassword", String.class).invoke(basicDataSource, tdOrmConfig.getPassword());
+            basicDataSourceClass.getMethod("setDriverClassName", String.class).invoke(basicDataSource, tdOrmConfig.getDriverClassName());
 
             // 设置 DBCP2 特有配置
             basicDataSourceClass.getMethod("setInitialSize", int.class).invoke(basicDataSource, 5);
@@ -151,18 +143,18 @@ public class TDengineOrmAutoConfiguration {
      */
     @Bean(TDENGINE_DATA_SOURCE)
     @ConditionalOnMissingBean(name = TDENGINE_DATA_SOURCE)
-    public DataSource defaultDataSource(TDengineOrmConfig tdengineOrmConfig) {
+    public DataSource defaultDataSource(TdOrmConfig tdOrmConfig) {
         try {
             // 使用 Spring 的 DriverManagerDataSource 作为兜底方案
             Class<?> driverManagerDataSourceClass = Class.forName("org.springframework.jdbc.datasource.DriverManagerDataSource");
             Object dataSource = driverManagerDataSourceClass.getDeclaredConstructor().newInstance();
 
-            if (StrUtil.isNotBlank(tdengineOrmConfig.getUrl())) {
-                driverManagerDataSourceClass.getMethod("setUrl", String.class).invoke(dataSource, tdengineOrmConfig.getUrl());
+            if (StrUtil.isNotBlank(tdOrmConfig.getUrl())) {
+                driverManagerDataSourceClass.getMethod("setUrl", String.class).invoke(dataSource, tdOrmConfig.getUrl());
             }
-            driverManagerDataSourceClass.getMethod("setUsername", String.class).invoke(dataSource, tdengineOrmConfig.getUsername());
-            driverManagerDataSourceClass.getMethod("setPassword", String.class).invoke(dataSource, tdengineOrmConfig.getPassword());
-            driverManagerDataSourceClass.getMethod("setDriverClassName", String.class).invoke(dataSource, tdengineOrmConfig.getDriverClassName());
+            driverManagerDataSourceClass.getMethod("setUsername", String.class).invoke(dataSource, tdOrmConfig.getUsername());
+            driverManagerDataSourceClass.getMethod("setPassword", String.class).invoke(dataSource, tdOrmConfig.getPassword());
+            driverManagerDataSourceClass.getMethod("setDriverClassName", String.class).invoke(dataSource, tdOrmConfig.getDriverClassName());
 
             return (DataSource) dataSource;
         } catch (Exception e) {
@@ -198,12 +190,12 @@ public class TDengineOrmAutoConfiguration {
     }
 
     /**
-     * 创建 TDengineRepository
+     * 创建 TdTemplate
      */
     @Bean
-    @ConditionalOnMissingBean(TDengineRepository.class)
-    public TDengineRepository tdengineRepository(JdbcTemplatePlus jdbcTemplatePlus,
-                                                 @Qualifier(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE) NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
-        return new TDengineRepository(jdbcTemplatePlus, namedParameterJdbcTemplate);
+    @ConditionalOnMissingBean(TdTemplate.class)
+    public TdTemplate tdTemplate(JdbcTemplatePlus jdbcTemplatePlus,
+                                 @Qualifier(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE) NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+        return new TdTemplate(jdbcTemplatePlus, namedParameterJdbcTemplate);
     }
 }
