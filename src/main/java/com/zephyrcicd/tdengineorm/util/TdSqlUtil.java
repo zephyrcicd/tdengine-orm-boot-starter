@@ -337,10 +337,10 @@ public class TdSqlUtil {
 
         List<String> fieldValueParamNames = new ArrayList<>();
         String fieldNameStr = fields.stream().map(field -> {
-            String fieldName = field.getName();
-            fieldValueParamNames.add(field.getName());
-            paramsMap.put(fieldName, ReflectUtil.getFieldValue(object, field));
-            return StrUtil.toUnderlineCase(fieldName);
+            String columnName = TdSqlUtil.getColumnName(field);
+            fieldValueParamNames.add(columnName);
+            paramsMap.put(columnName, ReflectUtil.getFieldValue(object, field));
+            return columnName;
         }).collect(TdSqlUtil.getColumnWithBracketCollector());
 
         String fieldValueParamsStr = fieldValueParamNames.stream()
