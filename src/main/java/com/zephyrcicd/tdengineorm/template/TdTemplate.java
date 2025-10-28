@@ -25,7 +25,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -251,7 +250,7 @@ public class TdTemplate {
         return result;
     }
 
-    public <T> int deleteByTs(Class<T> clazz, Timestamp ts) {
+    public <T> int deleteByTs(Class<T> clazz, Long ts) {
         String tbName = TdSqlUtil.getTbName(clazz);
         String sql = "DELETE FROM " + tbName + " WHERE ts = :ts";
         Map<String, Object> paramsMap = new HashMap<>(1);
@@ -259,7 +258,7 @@ public class TdTemplate {
         return namedParameterJdbcTemplate.update(sql, paramsMap);
     }
 
-    public <T> int batchDeleteByTs(Class<T> clazz, List<Timestamp> tsList) {
+    public <T> int batchDeleteByTs(Class<T> clazz, List<Long> tsList) {
         String tbName = TdSqlUtil.getTbName(clazz);
         String sql = "DELETE FROM " + tbName + " WHERE ts IN (:tsList)";
         Map<String, Object> paramsMap = new HashMap<>(1);
