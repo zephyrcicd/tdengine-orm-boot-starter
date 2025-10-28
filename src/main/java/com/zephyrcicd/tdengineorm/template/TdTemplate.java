@@ -9,6 +9,7 @@ import com.zephyrcicd.tdengineorm.dto.Page;
 import com.zephyrcicd.tdengineorm.enums.TdLogLevelEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
 import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
+import com.zephyrcicd.tdengineorm.mapper.TdColumnRowMapper;
 import com.zephyrcicd.tdengineorm.strategy.DefaultDynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.util.ClassUtil;
@@ -292,12 +293,16 @@ public class TdTemplate {
 
     private <R> List<R> listWithTdLog(String sql, Map<String, Object> paramsMap, Class<R> resultClass) {
         tdLog(sql, paramsMap);
-        return jdbcTemplatePlus.list(sql, paramsMap, resultClass);
+        return namedParameterJdbcTemplate.query(sql, paramsMap, TdColumnRowMapper.getInstance(resultClass));
     }
 
     private <R> R getOneWithTdLog(Class<R> resultClass, String sql, Map<String, Object> paramsMap) {
         tdLog(sql, paramsMap);
-        return jdbcTemplatePlus.get(sql, paramsMap, resultClass);
+        List<R> list = namedParameterJdbcTemplate.query(sql, paramsMap, TdColumnRowMapper.getInstance(resultClass));
+        if (CollectionUtils.isEmpty(list)) {
+            return null;
+        }
+        return list.get(0);
     }
 
     private static <T> void joinInsetSqlSuffix(List<T> list, StringBuilder finalSql, Map<String, Object> paramsMap) {
