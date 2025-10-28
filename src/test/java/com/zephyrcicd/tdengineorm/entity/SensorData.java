@@ -7,8 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
-
 /**
  * 传感器数据实体类 - 用于测试示例
  *
@@ -24,6 +22,8 @@ import java.sql.Timestamp;
  * );
  * </pre>
  *
+ * <p>注意：ts字段使用Long类型存储时间戳（毫秒）</p>
+ *
  * @author Zephyr
  */
 @Data
@@ -33,6 +33,10 @@ import java.sql.Timestamp;
 @TdTable("sensor_data")
 public class SensorData {
 
+    /**
+     * 时间戳
+     */
+    private Long ts;
     /**
      * 设备ID - TAG字段
      */
@@ -55,8 +59,4 @@ public class SensorData {
      */
     private Double humidity;
 
-    /**
-     * 时间戳
-     */
-    private Timestamp ts;
 }

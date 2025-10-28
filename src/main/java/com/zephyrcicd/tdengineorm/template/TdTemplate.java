@@ -5,6 +5,7 @@ import cn.hutool.core.lang.Pair;
 import cn.hutool.json.JSONUtil;
 import com.zephyrcicd.tdengineorm.annotation.TdTag;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
+import com.zephyrcicd.tdengineorm.constant.TdSqlConstant;
 import com.zephyrcicd.tdengineorm.dto.Page;
 import com.zephyrcicd.tdengineorm.enums.TdLogLevelEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
@@ -46,6 +47,36 @@ public class TdTemplate {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     public static final Integer DEFAULT_BATCH_SIZE = 500;
+
+
+    /**
+     * 创建超级表
+     *
+     * @param clazz clazz
+     * @return int
+     */
+    public <T> int createStableTable(Class<T> clazz) {
+        List<Field> fieldList = ClassUtil.getAllFields(clazz);
+        // 区分普通字段和Tag字段
+        Pair<List<Field>, List<Field>> fieldListPairByTag = TdSqlUtil.differentiateByTag(fieldList);
+
+        List<Field> commFieldList = fieldListPairByTag.getValue();
+        if (CollectionUtils.isEmpty(commFieldList)) {
+            throw new TdOrmException(TdOrmExceptionCode.NO_COMM_FIELD);
+        }
+
+        Field primaryTsField = TdSqlUtil.checkPrimaryTsField(commFieldList);
+
+        String finalSql = TdSqlConstant.CREATE_STABLE + TdSqlUtil.getTbName(clazz) + TdSqlUtil.buildCreateColumn(commFieldList, primaryTsField);
+        List<Field> tagFieldList = fieldListPairByTag.getKey();
+
+        if (CollectionUtils.isEmpty(tagFieldList)) {
+            throw new TdOrmException(TdOrmExceptionCode.NO_TAG_FIELD);
+        }
+        String tagColumnSql = TdSqlUtil.buildCreateColumn(tagFieldList, null);
+        finalSql += SqlConstant.BLANK + TdSqlConstant.TAGS + tagColumnSql;
+        return updateWithTdLog(finalSql, new HashMap<>(0));
+    }
 
     /**
      * 按ts字段倒叙, 获取最新的一条数据
@@ -230,9 +261,9 @@ public class TdTemplate {
      *
      * <p><b>适用场景：</b>TDengine 子表首次插入、动态设备接入场景、需要同时指定 TAG 和普通字段</p>
      *
-     * @param object                  实体对象（需包含 TAG 和普通字段）
-     * @param dynamicTbNameStrategy   动态子表名称策略
-     * @param <T>                     实体类型
+     * @param object                实体对象（需包含 TAG 和普通字段）
+     * @param dynamicTbNameStrategy 动态子表名称策略
+     * @param <T>                   实体类型
      * @return 影响的行数
      */
     public <T> int insertUsing(T object, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
@@ -258,10 +289,10 @@ public class TdTemplate {
      *
      * <p><b>适用场景：</b>大批量数据导入不同子表、多设备数据批量上报、分表场景的批量写入</p>
      *
-     * @param clazz                   实体类 Class
-     * @param entityList              实体列表
-     * @param dynamicTbNameStrategy   动态表名策略
-     * @param <T>                     实体类型
+     * @param clazz                 实体类 Class
+     * @param entityList            实体列表
+     * @param dynamicTbNameStrategy 动态表名策略
+     * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
@@ -286,11 +317,11 @@ public class TdTemplate {
      *
      * <p><b>适用场景：</b>大批量数据导入不同子表（自定义批次大小）、多设备数据批量上报、分表场景的批量写入</p>
      *
-     * @param clazz                   实体类 Class
-     * @param entityList              实体列表
-     * @param pageSize                每批次大小
-     * @param dynamicTbNameStrategy   动态表名策略
-     * @param <T>                     实体类型
+     * @param clazz                 实体类 Class
+     * @param entityList            实体列表
+     * @param pageSize              每批次大小
+     * @param dynamicTbNameStrategy 动态表名策略
+     * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, int pageSize, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
@@ -371,10 +402,10 @@ public class TdTemplate {
      *
      * <p><b>适用场景：</b>TDengine 子表首次批量插入（动态表名）、同设备多条数据批量上报</p>
      *
-     * @param clazz                   实体类 Class
-     * @param entityList              实体列表（TAG 值必须相同）
-     * @param dynamicTbNameStrategy   动态表名策略
-     * @param <T>                     实体类型
+     * @param clazz                 实体类 Class
+     * @param entityList            实体列表（TAG 值必须相同）
+     * @param dynamicTbNameStrategy 动态表名策略
+     * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
@@ -398,11 +429,11 @@ public class TdTemplate {
      *
      * <p><b>适用场景：</b>TDengine 子表首次大批量插入（自定义批次）、同设备大量历史数据导入</p>
      *
-     * @param clazz                   实体类 Class
-     * @param entityList              实体列表（TAG 值必须相同）
-     * @param pageSize                每批次大小
-     * @param dynamicTbNameStrategy   动态表名策略
-     * @param <T>                     实体类型
+     * @param clazz                 实体类 Class
+     * @param entityList            实体列表（TAG 值必须相同）
+     * @param pageSize              每批次大小
+     * @param dynamicTbNameStrategy 动态表名策略
+     * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, EntityTableNameStrategy<T> dynamicTbNameStrategy) {

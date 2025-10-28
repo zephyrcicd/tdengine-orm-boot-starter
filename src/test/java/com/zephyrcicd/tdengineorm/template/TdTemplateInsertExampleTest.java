@@ -3,13 +3,15 @@ package com.zephyrcicd.tdengineorm.template;
 import com.zephyrcicd.tdengineorm.entity.SensorData;
 import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.MapTableNameStrategy;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 /**
@@ -27,6 +29,24 @@ public class TdTemplateInsertExampleTest {
     @Autowired
     private TdTemplate tdTemplate;
 
+    /**
+     * 创建超级表（在所有测试之前执行一次）
+     * 使用TdTemplate的createStableTable方法根据实体类自动创建超级表
+     */
+    @BeforeAll
+    public static void createSuperTable(@Autowired TdTemplate tdTemplate) {
+        System.out.println("开始创建超级表...");
+
+        // 使用TdTemplate的createStableTable方法创建超级表
+        // 该方法会根据实体类的@TdTable和@TdTag注解自动生成CREATE STABLE语句
+        int result = tdTemplate.createStableTable(SensorData.class);
+
+        System.out.println("超级表 sensor_data 创建成功，影响行数: " + result);
+        System.out.println("表结构：");
+        System.out.println("  普通字段: ts(TIMESTAMP), temperature(DOUBLE), humidity(DOUBLE)");
+        System.out.println("  TAG字段: device_id(NCHAR), location(NCHAR)");
+    }
+
     // ==================== 基础插入示例 ====================
 
     @Test
@@ -38,7 +58,7 @@ public class TdTemplateInsertExampleTest {
                 .location("Beijing")
                 .temperature(25.5)
                 .humidity(60.0)
-                .ts(Timestamp.valueOf(LocalDateTime.now()))
+                .ts(System.currentTimeMillis())
                 .build();
 
         // 插入数据，使用实体类上@TdTable注解的表名
@@ -55,7 +75,7 @@ public class TdTemplateInsertExampleTest {
                 .location("Beijing")        // TAG字段
                 .temperature(25.5)
                 .humidity(60.0)
-                .ts(Timestamp.valueOf(LocalDateTime.now()))
+                .ts(System.currentTimeMillis())
                 .build();
 
         // 插入到超级表，TAG字段会被自动处理
@@ -74,7 +94,7 @@ public class TdTemplateInsertExampleTest {
                 .location("Beijing")
                 .temperature(25.5)
                 .humidity(60.0)
-                .ts(Timestamp.valueOf(LocalDateTime.now()))
+                .ts(System.currentTimeMillis())
                 .build();
 
         // 定义表名策略：根据设备ID生成子表名
@@ -94,7 +114,7 @@ public class TdTemplateInsertExampleTest {
         Map<String, Object> dataMap = new HashMap<>();
         dataMap.put("temperature", 25.5);
         dataMap.put("humidity", 60.0);
-        dataMap.put("ts", Timestamp.valueOf(LocalDateTime.now()));
+        dataMap.put("ts", System.currentTimeMillis());
 
         // 定义表名策略：根据Map中的数据生成表名
         MapTableNameStrategy strategy = map -> {
@@ -118,7 +138,7 @@ public class TdTemplateInsertExampleTest {
                 .location("Beijing")        // TAG字段
                 .temperature(25.5)
                 .humidity(60.0)
-                .ts(Timestamp.valueOf(LocalDateTime.now()))
+                .ts(System.currentTimeMillis())
                 .build();
 
         // 定义子表名策略
@@ -138,6 +158,7 @@ public class TdTemplateInsertExampleTest {
     public void example6_batchInsertToDifferentTables() {
         // 创建多个设备的数据
         List<SensorData> dataList = new ArrayList<>();
+        long baseTime = System.currentTimeMillis();
 
         // 设备1的数据
         for (int i = 0; i < 100; i++) {
@@ -146,7 +167,7 @@ public class TdTemplateInsertExampleTest {
                     .location("Beijing")
                     .temperature(25.0 + i * 0.1)
                     .humidity(60.0 + i * 0.1)
-                    .ts(Timestamp.valueOf(LocalDateTime.now().plusSeconds(i)))
+                    .ts(baseTime + i * 1000)  // 每秒递增
                     .build());
         }
 
@@ -157,7 +178,7 @@ public class TdTemplateInsertExampleTest {
                     .location("Shanghai")
                     .temperature(26.0 + i * 0.1)
                     .humidity(65.0 + i * 0.1)
-                    .ts(Timestamp.valueOf(LocalDateTime.now().plusSeconds(i)))
+                    .ts(baseTime + i * 1000)  // 每秒递增
                     .build());
         }
 
@@ -178,6 +199,7 @@ public class TdTemplateInsertExampleTest {
     public void example7_batchInsertWithCustomPageSize() {
         // 创建大量数据（10000条）
         List<SensorData> largeDataList = new ArrayList<>();
+        long baseTime = System.currentTimeMillis();
 
         for (int deviceNum = 1; deviceNum <= 5; deviceNum++) {
             for (int i = 0; i < 2000; i++) {
@@ -186,7 +208,7 @@ public class TdTemplateInsertExampleTest {
                         .location("Location" + deviceNum)
                         .temperature(25.0 + i * 0.01)
                         .humidity(60.0 + i * 0.01)
-                        .ts(Timestamp.valueOf(LocalDateTime.now().plusSeconds(i)))
+                        .ts(baseTime + i * 1000)  // 每秒递增
                         .build());
             }
         }
@@ -209,13 +231,15 @@ public class TdTemplateInsertExampleTest {
     public void example8_batchInsertUsing() {
         // 创建同一设备的多条数据
         List<SensorData> dataList = new ArrayList<>();
+        long baseTime = System.currentTimeMillis();
+
         for (int i = 0; i < 1000; i++) {
             dataList.add(SensorData.builder()
                     .deviceId("device001")      // 所有数据的TAG值相同
                     .location("Beijing")        // 所有数据的TAG值相同
                     .temperature(25.0 + i * 0.1)
                     .humidity(60.0 + i * 0.1)
-                    .ts(Timestamp.valueOf(LocalDateTime.now().plusSeconds(i)))
+                    .ts(baseTime + i * 1000)  // 每秒递增
                     .build());
         }
 
@@ -230,13 +254,15 @@ public class TdTemplateInsertExampleTest {
     public void example9_batchInsertUsingWithStrategy() {
         // 创建同一设备的多条数据
         List<SensorData> dataList = new ArrayList<>();
+        long baseTime = System.currentTimeMillis();
+
         for (int i = 0; i < 1000; i++) {
             dataList.add(SensorData.builder()
                     .deviceId("device001")      // TAG字段
                     .location("Beijing")        // TAG字段
                     .temperature(25.0 + i * 0.1)
                     .humidity(60.0 + i * 0.1)
-                    .ts(Timestamp.valueOf(LocalDateTime.now().plusSeconds(i)))
+                    .ts(baseTime + i * 1000)  // 每秒递增
                     .build());
         }
 
@@ -255,13 +281,15 @@ public class TdTemplateInsertExampleTest {
     public void example10_batchInsertUsingWithCustomPageSize() {
         // 创建同一设备的大量历史数据（10000条）
         List<SensorData> largeDataList = new ArrayList<>();
+        long baseTime = System.currentTimeMillis();
+
         for (int i = 0; i < 10000; i++) {
             largeDataList.add(SensorData.builder()
                     .deviceId("device001")      // TAG字段
                     .location("Beijing")        // TAG字段
                     .temperature(25.0 + i * 0.01)
                     .humidity(60.0 + i * 0.01)
-                    .ts(Timestamp.valueOf(LocalDateTime.now().plusSeconds(i)))
+                    .ts(baseTime + i * 1000)  // 每秒递增
                     .build());
         }
 
@@ -281,24 +309,28 @@ public class TdTemplateInsertExampleTest {
     @DisplayName("示例11: 根据时间动态分表插入")
     public void example11_insertWithTimeBasedPartition() {
         // 创建传感器数据
+        long currentTimeMillis = System.currentTimeMillis();
         SensorData data = SensorData.builder()
                 .deviceId("device001")
                 .location("Beijing")
                 .temperature(25.5)
                 .humidity(60.0)
-                .ts(Timestamp.valueOf(LocalDateTime.now()))
+                .ts(currentTimeMillis)
                 .build();
 
         // 定义基于时间的分表策略：按月分表
         EntityTableNameStrategy<SensorData> strategy = entity -> {
-            LocalDateTime dateTime = entity.getTs().toLocalDateTime();
+            // 将Long类型的时间戳转换为LocalDateTime
+            LocalDateTime dateTime = Instant.ofEpochMilli(entity.getTs())
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDateTime();
             String yearMonth = String.format("%04d%02d",
                     dateTime.getYear(),
                     dateTime.getMonthValue());
             return "sensor_" + entity.getDeviceId() + "_" + yearMonth;
         };
 
-        // 插入，实际表名类似: sensor_device001_202501
+        // 插入，实际表名类似: sensor_device001_202510
         int rows = tdTemplate.insert(strategy, data);
         System.out.println("插入影响行数: " + rows);
     }
@@ -313,14 +345,14 @@ public class TdTemplateInsertExampleTest {
                         .location("Beijing")
                         .temperature(25.5)
                         .humidity(60.0)
-                        .ts(Timestamp.valueOf(LocalDateTime.now()))
+                        .ts(System.currentTimeMillis())
                         .build(),
                 SensorData.builder()
                         .deviceId("device002")
                         .location("Shanghai")
                         .temperature(26.5)
                         .humidity(65.0)
-                        .ts(Timestamp.valueOf(LocalDateTime.now()))
+                        .ts(System.currentTimeMillis())
                         .build()
         );
 
