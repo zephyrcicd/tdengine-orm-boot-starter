@@ -57,6 +57,8 @@ public enum TdOrmExceptionCode implements ExceptionCode {
      * 缺少TAG字段
      */
     NO_TAG_FIELD(70011, "The super table must have a tag field!"),
+
+    TABLE_NAME_BLANK(70012, "Table name cannot be blank!"),
     ;
 
     private final Integer code;

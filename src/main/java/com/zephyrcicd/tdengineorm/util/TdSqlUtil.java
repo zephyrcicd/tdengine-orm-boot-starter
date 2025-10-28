@@ -16,7 +16,7 @@ import com.zephyrcicd.tdengineorm.enums.TdSelectFuncEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
 import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.func.GetterFunction;
-import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
+import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -307,14 +307,6 @@ public class TdSqlUtil {
     }
 
 
-    public static Pair<String, List<Field>> getTbNameAndFieldListPair(Class<?> clazz) {
-        // 获取所有字段
-        List<Field> fieldList = ClassUtil.getAllFields(clazz);
-        Assert.notEmpty(fieldList, "[TdSqlUtil#getTbNameAndFieldListPair] No field found!");
-        return Pair.of(getTbName(clazz), fieldList);
-    }
-
-
     /**
      * 获取字段名称以及对应的值的Map, 组成映射关系
      *
@@ -378,7 +370,7 @@ public class TdSqlUtil {
                 .collect(TdSqlUtil.getColumnWithBracketCollector());
     }
 
-    public static <T> String getInsertUsingSqlPrefix(T object, String sTbName, List<Field> fieldList, DynamicNameStrategy<T> dynamicTbNameStrategy, Map<String, Object> map) {
+    public static <T> String getInsertUsingSqlPrefix(T object, List<Field> fieldList, EntityTableNameStrategy<T> dynamicTbNameStrategy, Map<String, Object> map) {
         // 根据是否为TAG字段做分组
         Pair<List<Field>, List<Field>> fieldsPair = differentiateByTag(fieldList);
         // 获取TAGS字段名称&对应的值
@@ -386,12 +378,13 @@ public class TdSqlUtil {
         // 获取普通字段的名称
         String commFieldSql = TdSqlUtil.joinColumnNamesWithBracket(fieldsPair.getValue());
         // 根据策略生成表名(传入实体对象以支持基于数据的命名)
-        return SqlConstant.INSERT_INTO + dynamicTbNameStrategy.dynamicTableName(object, sTbName)
-                + TdSqlConstant.USING + sTbName + tagFieldSql + commFieldSql + SqlConstant.VALUES;
+        return SqlConstant.INSERT_INTO + dynamicTbNameStrategy.getTableName(object)
+                + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql + SqlConstant.VALUES;
     }
 
 
-    public static <T> Pair<String, Map<String, Object>> getFinalInsertUsingSql(T object, List<Field> fieldList, String sTbName, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+    public static <T> Pair<String, Map<String, Object>> getFinalInsertUsingSql(T object, List<Field> fieldList,
+                                                                               EntityTableNameStrategy<T> dynamicTbNameStrategy) {
         Map<String, Object> paramsMap = new HashMap<>(fieldList.size());
 
         // 根据是否为TAG字段做分组
@@ -403,10 +396,10 @@ public class TdSqlUtil {
         String commFieldSql = getTagFieldNameAndValuesSql(object, fieldsPair.getValue(), paramsMap, false);
 
         // 根据策略生成表名(传入实体对象以支持基于数据的命名)
-        String childTbName = dynamicTbNameStrategy.dynamicTableName(object, sTbName);
+        String childTbName = dynamicTbNameStrategy.getTableName(object);
 
         // 拼接最终SQL
-        String finalSql = SqlConstant.INSERT_INTO + childTbName + TdSqlConstant.USING + sTbName + tagFieldSql + commFieldSql;
+        String finalSql = SqlConstant.INSERT_INTO + childTbName + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql;
 
         return Pair.of(finalSql, paramsMap);
     }

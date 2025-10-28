@@ -2,7 +2,6 @@ package com.zephyrcicd.tdengineorm.config;
 
 import cn.hutool.core.util.StrUtil;
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
-import com.zephyrcicd.tdengineorm.util.JdbcTemplatePlus;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -181,21 +180,11 @@ public class TdOrmAutoConfiguration {
     }
 
     /**
-     * 创建 JdbcTemplatePlus
-     */
-    @Bean
-    @ConditionalOnMissingBean(JdbcTemplatePlus.class)
-    public JdbcTemplatePlus jdbcTemplatePlus(@Qualifier(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE) NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
-        return new JdbcTemplatePlus(namedParameterJdbcTemplate);
-    }
-
-    /**
      * 创建 TdTemplate
      */
     @Bean
     @ConditionalOnMissingBean(TdTemplate.class)
-    public TdTemplate tdTemplate(JdbcTemplatePlus jdbcTemplatePlus,
-                                 @Qualifier(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE) NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
-        return new TdTemplate(jdbcTemplatePlus, namedParameterJdbcTemplate);
+    public TdTemplate tdTemplate(@Qualifier(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE) NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+        return new TdTemplate(namedParameterJdbcTemplate);
     }
 }

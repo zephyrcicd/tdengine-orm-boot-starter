@@ -10,10 +10,11 @@ import com.zephyrcicd.tdengineorm.enums.TdLogLevelEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
 import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.mapper.TdColumnRowMapper;
-import com.zephyrcicd.tdengineorm.strategy.DefaultDynamicNameStrategy;
-import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
+import com.zephyrcicd.tdengineorm.strategy.DefaultEntityTableNameStrategy;
+import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
+import com.zephyrcicd.tdengineorm.strategy.MapTableNameStrategy;
+import com.zephyrcicd.tdengineorm.util.AssertUtil;
 import com.zephyrcicd.tdengineorm.util.ClassUtil;
-import com.zephyrcicd.tdengineorm.util.JdbcTemplatePlus;
 import com.zephyrcicd.tdengineorm.util.TdOrmUtil;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
@@ -43,7 +44,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TdTemplate {
 
-    private final JdbcTemplatePlus jdbcTemplatePlus;
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     public static final Integer DEFAULT_BATCH_SIZE = 1000;
 
@@ -121,48 +121,200 @@ public class TdTemplate {
     }
 
     /**
-     * 插入单条数据
+     * 插入单条数据（使用默认表名）
      *
-     * @param object 对象
-     * @return int
+     * <p>
+     * 使用实体类上的 @TdTable 注解值作为表名进行插入。
+     * 如果实体类对应的是超级表，会使用超级表名称作为表名插入，故要求实体类内对Tag相关字段有准确的赋值。
+     * </p>
+     *
+     * <p><b>适用场景：</b></p>
+     * <ul>
+     *     <li>直接向普通表插入数据</li>
+     *     <li>向超级表插入数据（需要包含 TAG 字段值）</li>
+     * </ul>
+     *
+     * <p><b>使用示例：</b></p>
+     * <pre>{@code
+     * SensorData data = new SensorData();
+     * data.setDeviceId("device001");  // TAG 字段
+     * data.setLocation("room1");      // TAG 字段
+     * data.setTemperature(25.5);
+     * data.setTs(new Timestamp(System.currentTimeMillis()));
+     *
+     * int rows = tdTemplate.insert(data);
+     * }</pre>
+     *
+     * @param entity 实体对象（必须有 @TdTable 注解）
+     * @param <T>    实体类型
+     * @return 影响的行数
+     * @throws TdOrmException 如果实体类没有字段
      */
-    public <T> int insert(T object) {
-        return insert(object, new DefaultDynamicNameStrategy<>());
+    public <T> int insert(T entity) {
+        String tbName = TdSqlUtil.getTbName(entity.getClass());
+
+        // 拿到所有字段进行赋值
+        List<Field> fields = ClassUtil.getAllFields(entity.getClass());
+        if (CollectionUtils.isEmpty(fields)) {
+            throw new TdOrmException(TdOrmExceptionCode.NO_FILED);
+        }
+
+        return doInsertEntity(entity, tbName, fields);
     }
 
     /**
-     * 向指定子表插入数据, 无需指定TAG相关字段
+     * 向指定子表插入数据（使用动态表名策略）
      *
-     * @param object              对象
-     * @param dynamicNameStrategy 动态命名策略
-     * @return int
+     * <p>
+     * 通过策略模式动态生成表名，适用于 TDengine 子表场景。
+     * 由于已经通过策略指定了子表名称，会跳过 TAG 相关字段的赋值，只插入普通字段。
+     * </p>
+     *
+     * <p><b>适用场景：</b></p>
+     * <ul>
+     *     <li>TDengine 子表插入（根据设备ID等生成子表名）</li>
+     *     <li>动态分表场景（如按日期、区域等分表）</li>
+     * </ul>
+     *
+     * <p><b>使用示例：</b></p>
+     * <pre>{@code
+     * // 定义策略：根据设备ID生成子表名
+     * EntityTableNameStrategy<SensorData> strategy = entity ->
+     *     "sensor_" + entity.getDeviceId();
+     *
+     * SensorData data = new SensorData();
+     * data.setDeviceId("device001");
+     * data.setTemperature(25.5);
+     * data.setTs(new Timestamp(System.currentTimeMillis()));
+     *
+     * // 实际插入到 sensor_device001 表
+     * int rows = tdTemplate.insert(strategy, data);
+     * }</pre>
+     *
+     * @param entityTableNameStrategy 实体类表名称获取策略
+     * @param object                  实体对象
+     * @param <T>                     实体类型
+     * @return 影响的行数
+     * @throws TdOrmException 如果表名为空或实体类没有非TAG字段
      */
-    public <T> int insert(T object, DynamicNameStrategy<T> dynamicNameStrategy) {
-        // 获取超级表表名&所有Field
+    public <T> int insert(EntityTableNameStrategy<T> entityTableNameStrategy, T object) {
+        String tbName = entityTableNameStrategy.getTableName(object);
+        AssertUtil.notBlank(tbName, new TdOrmException(TdOrmExceptionCode.TABLE_NAME_BLANK));
+
+        // 获取非TAG字段
         List<Field> noTagFieldList = TdSqlUtil.getNoTagFieldList(object.getClass());
         if (CollectionUtils.isEmpty(noTagFieldList)) {
             throw new TdOrmException(TdOrmExceptionCode.NO_COMM_FIELD);
         }
 
+        return doInsertEntity(object, tbName, noTagFieldList);
+    }
+
+
+    private <T> int doInsertEntity(T object, String tbName, List<Field> noTagFieldList) {
         Map<String, Object> paramsMap = new HashMap<>(noTagFieldList.size());
-        String tbName = TdSqlUtil.getTbName(object.getClass());
-        if (null != dynamicNameStrategy) {
-            tbName = dynamicNameStrategy.dynamicTableName(object, tbName);
-        }
+
         String sql = SqlConstant.INSERT_INTO + tbName + TdSqlUtil.joinColumnNamesAndValuesSql(object, noTagFieldList, paramsMap);
         return updateWithTdLog(sql, paramsMap);
     }
 
 
-    public <T> int insertUsing(T object) {
-        return insertUsing(object, new DefaultDynamicNameStrategy<>());
+    /**
+     * 使用 Map 作为数据载体插入指定表（使用动态表名策略）
+     *
+     * <p>
+     * 适用于无需定义实体类的灵活场景，直接使用 Map 存储数据并通过策略动态生成表名。
+     * Map 的 key 为列名，value 为列值。
+     * </p>
+     *
+     * <p><b>适用场景：</b></p>
+     * <ul>
+     *     <li>动态字段场景（字段不固定，无法定义实体类）</li>
+     *     <li>快速开发原型或临时数据导入</li>
+     *     <li>基于 Map 的数据动态分表</li>
+     * </ul>
+     *
+     * <p><b>使用示例：</b></p>
+     * <pre>{@code
+     * // 定义策略：根据 deviceId 生成表名
+     * MapTableNameStrategy strategy = dataMap ->
+     *     "sensor_" + dataMap.get("deviceId");
+     *
+     * Map<String, Object> data = new HashMap<>();
+     * data.put("deviceId", "device001");
+     * data.put("temperature", 25.5);
+     * data.put("humidity", 60.0);
+     * data.put("ts", System.currentTimeMillis());
+     *
+     * // 实际插入到 sensor_device001 表
+     * int rows = tdTemplate.insert(strategy, data);
+     * }</pre>
+     *
+     * @param mapTableNameStrategy Map 载体表名称策略
+     * @param dataMap              数据 Map（key=列名, value=列值）
+     * @return 影响的行数
+     */
+    public int insert(MapTableNameStrategy mapTableNameStrategy, Map<String, Object> dataMap) {
+        return doInsertMap(mapTableNameStrategy.getTableName(dataMap), dataMap);
     }
 
-    public <T> int insertUsing(T object, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        // 获取表表名&所有Field
-        Pair<String, List<Field>> tbNameAndFieldsPair = TdSqlUtil.getTbNameAndFieldListPair(object.getClass());
+    private int doInsertMap(String tableName, Map<String, Object> dataMap) {
+        StringBuilder sql = new StringBuilder(SqlConstant.INSERT_INTO)
+                .append(tableName)
+                .append(SqlConstant.LEFT_BRACKET);
+
+        StringBuilder valueSql = new StringBuilder(") VALUES (");
+        for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
+            sql.append(entry.getKey()).append(SqlConstant.COMMA);
+            valueSql.append(SqlConstant.COLON).append(entry.getKey()).append(SqlConstant.COMMA);
+        }
+        sql.deleteCharAt(sql.length() - 1);
+        valueSql.deleteCharAt(valueSql.length() - 1).append(SqlConstant.RIGHT_BRACKET);
+        sql.append(valueSql);
+        return updateWithTdLog(sql.toString(), dataMap);
+    }
+
+
+    /**
+     * 使用 USING 语法插入子表数据（自动创建子表）
+     *
+     * <p>
+     * 使用 TDengine 的 INSERT INTO ... USING ... TAGS 语法自动创建子表并插入数据。
+     * 如果子表不存在，会自动根据超级表和 TAG 值创建子表；如果已存在则直接插入。
+     * </p>
+     *
+     * <p><b>适用场景：</b></p>
+     * <ul>
+     *     <li>TDengine 子表首次插入（自动建表）</li>
+     *     <li>动态设备接入场景（设备首次上报数据）</li>
+     *     <li>需要同时指定 TAG 和普通字段的场景</li>
+     * </ul>
+     *
+     * <p><b>使用示例：</b></p>
+     * <pre>{@code
+     * // 定义策略：根据设备ID生成子表名
+     * EntityTableNameStrategy<SensorData> strategy = entity ->
+     *     "sensor_" + entity.getDeviceId();
+     *
+     * SensorData data = new SensorData();
+     * data.setDeviceId("device001");      // TAG 字段
+     * data.setLocation("room1");          // TAG 字段
+     * data.setTemperature(25.5);          // 普通字段
+     * data.setTs(new Timestamp(System.currentTimeMillis()));
+     *
+     * // SQL: INSERT INTO sensor_device001 USING sensor_data TAGS('device001', 'room1') VALUES(...)
+     * int rows = tdTemplate.insertUsing(data, strategy);
+     * }</pre>
+     *
+     * @param object                  实体对象（需包含 TAG 和普通字段）
+     * @param dynamicTbNameStrategy   动态子表名称策略
+     * @param <T>                     实体类型
+     * @return 影响的行数
+     */
+    public <T> int insertUsing(T object, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
         // 获取SQL&参数值
-        Pair<String, Map<String, Object>> finalSqlAndParamsMapPair = TdSqlUtil.getFinalInsertUsingSql(object, tbNameAndFieldsPair.getValue(), tbNameAndFieldsPair.getKey(), dynamicTbNameStrategy);
+        Pair<String, Map<String, Object>> finalSqlAndParamsMapPair = TdSqlUtil.getFinalInsertUsingSql(object,
+                ClassUtil.getAllFields(object.getClass()), dynamicTbNameStrategy);
 
         String finalSql = finalSqlAndParamsMapPair.getKey();
         Map<String, Object> paramsMap = finalSqlAndParamsMapPair.getValue();
@@ -171,20 +323,90 @@ public class TdTemplate {
     }
 
 
-    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+    /**
+     * 批量插入数据（使用动态表名策略，默认批次大小）
+     *
+     * <p>
+     * 批量插入实体列表到不同的子表中。会根据表名策略对数据进行智能分组，
+     * 相同表名的数据合并为一条批量 INSERT 语句，提高插入效率。
+     * 使用默认批次大小（{@value DEFAULT_BATCH_SIZE}）进行分批插入。
+     * </p>
+     *
+     * <p><b>适用场景：</b></p>
+     * <ul>
+     *     <li>大批量数据导入不同子表</li>
+     *     <li>多设备数据批量上报</li>
+     *     <li>分表场景的批量写入</li>
+     * </ul>
+     *
+     * <p><b>使用示例：</b></p>
+     * <pre>{@code
+     * EntityTableNameStrategy<SensorData> strategy = entity ->
+     *     "sensor_" + entity.getDeviceId();
+     *
+     * List<SensorData> dataList = Arrays.asList(
+     *     createData("device001", 25.5),
+     *     createData("device001", 26.0),
+     *     createData("device002", 24.8)  // 不同设备
+     * );
+     *
+     * // 自动分组：device001的数据插入sensor_device001，device002的插入sensor_device002
+     * int[] rows = tdTemplate.batchInsert(SensorData.class, dataList, strategy);
+     * }</pre>
+     *
+     * @param clazz                   实体类 Class
+     * @param entityList              实体列表
+     * @param dynamicTbNameStrategy   动态表名策略
+     * @param <T>                     实体类型
+     * @return 每批插入影响的行数数组
+     */
+    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
         return batchInsert(clazz, entityList, DEFAULT_BATCH_SIZE, dynamicTbNameStrategy);
     }
 
-    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+    /**
+     * 批量插入数据（使用动态表名策略，自定义批次大小）
+     *
+     * <p>
+     * 批量插入实体列表到不同的子表中，支持自定义每批次大小。
+     * 会根据表名策略对数据进行智能分组，相同表名的数据合并为一条批量 INSERT 语句。
+     * 每个分组内部会按照指定的 pageSize 进行分批插入，避免单次 SQL 过大。
+     * </p>
+     *
+     * <p><b>注意事项：</b></p>
+     * <ul>
+     *     <li>不使用 USING 语法，因此不能指定 TAG 字段的值</li>
+     *     <li>适用于子表已存在的场景</li>
+     *     <li>数据会先按表名分组，再按 pageSize 分批</li>
+     * </ul>
+     *
+     * <p><b>使用示例：</b></p>
+     * <pre>{@code
+     * EntityTableNameStrategy<SensorData> strategy = entity ->
+     *     "sensor_" + entity.getDeviceId();
+     *
+     * List<SensorData> largeDataList = createLargeDataList();  // 10000条数据
+     *
+     * // 每500条一批进行插入
+     * int[] rows = tdTemplate.batchInsert(SensorData.class, largeDataList, 500, strategy);
+     * }</pre>
+     *
+     * @param clazz                   实体类 Class
+     * @param entityList              实体列表
+     * @param pageSize                每批次大小
+     * @param dynamicTbNameStrategy   动态表名策略
+     * @param <T>                     实体类型
+     * @return 每批插入影响的行数数组
+     */
+    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, int pageSize, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
         // 不使用USING语法时, 不能指定TAG字段的值
         List<Field> fieldList = ClassUtil.getAllFields(clazz, field -> !field.isAnnotationPresent(TdTag.class));
 
         // 按照命名策略对数据进行分组,相同表名的数据放在一起
         Map<String, List<T>> tableGroupMap = new HashMap<>();
-        String defaultTbName = TdSqlUtil.getTbName(clazz);
 
         for (T entity : entityList) {
-            String tbName = dynamicTbNameStrategy.dynamicTableName(entity, defaultTbName);
+            String tbName = dynamicTbNameStrategy.getTableName(entity);
             tableGroupMap.computeIfAbsent(tbName, k -> new ArrayList<>()).add(entity);
         }
 
@@ -213,17 +435,97 @@ public class TdTemplate {
         return resultList.stream().mapToInt(Integer::intValue).toArray();
     }
 
+    /**
+     * 使用 USING 语法批量插入子表数据（默认表名策略，默认批次大小）
+     *
+     * <p>
+     * 使用 TDengine 的 INSERT INTO ... USING ... TAGS 语法批量插入数据到子表。
+     * 如果子表不存在会自动创建。使用默认表名策略和默认批次大小。
+     * </p>
+     *
+     * <p><b>注意事项：</b></p>
+     * <ul>
+     *     <li>列表中的所有数据必须属于同一个子表（TAG 值相同）</li>
+     *     <li>默认使用超级表名作为子表名</li>
+     * </ul>
+     *
+     * @param clazz      实体类 Class
+     * @param entityList 实体列表（TAG 值必须相同）
+     * @param <T>        实体类型
+     * @return 每批插入影响的行数数组
+     */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList) {
-        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
+        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultEntityTableNameStrategy<>());
     }
 
-    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+    /**
+     * 使用 USING 语法批量插入子表数据（自定义表名策略，默认批次大小）
+     *
+     * <p>
+     * 使用 TDengine 的 INSERT INTO ... USING ... TAGS 语法批量插入数据到子表。
+     * 通过策略模式动态生成子表名。如果子表不存在会自动创建。
+     * </p>
+     *
+     * <p><b>注意事项：</b></p>
+     * <ul>
+     *     <li>列表中的所有数据必须属于同一个子表（TAG 值相同）</li>
+     *     <li>通过策略动态生成子表名</li>
+     * </ul>
+     *
+     * <p><b>使用示例：</b></p>
+     * <pre>{@code
+     * EntityTableNameStrategy<SensorData> strategy = entity ->
+     *     "sensor_" + entity.getDeviceId();
+     *
+     * List<SensorData> dataList = createSameDeviceDataList();  // 同一设备的多条数据
+     *
+     * int[] rows = tdTemplate.batchInsertUsing(SensorData.class, dataList, strategy);
+     * }</pre>
+     *
+     * @param clazz                   实体类 Class
+     * @param entityList              实体列表（TAG 值必须相同）
+     * @param dynamicTbNameStrategy   动态表名策略
+     * @param <T>                     实体类型
+     * @return 每批插入影响的行数数组
+     */
+    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
         return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, dynamicTbNameStrategy);
     }
 
-    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy dynamicTbNameStrategy) {
-        // 获取超级表表名&所有字段
-        Pair<String, List<Field>> tbNameAndFieldsPair = TdSqlUtil.getTbNameAndFieldListPair(clazz);
+    /**
+     * 使用 USING 语法批量插入子表数据（自定义表名策略和批次大小）
+     *
+     * <p>
+     * 使用 TDengine 的 INSERT INTO ... USING ... TAGS 语法批量插入数据到子表。
+     * 通过策略模式动态生成子表名，并支持自定义每批次大小。如果子表不存在会自动创建。
+     * </p>
+     *
+     * <p><b>注意事项：</b></p>
+     * <ul>
+     *     <li>列表中的所有数据必须属于同一个子表（TAG 值相同）</li>
+     *     <li>会使用第一条数据的 TAG 值作为所有数据的 TAG</li>
+     *     <li>按照 pageSize 分批执行 INSERT USING 语句</li>
+     * </ul>
+     *
+     * <p><b>使用示例：</b></p>
+     * <pre>{@code
+     * EntityTableNameStrategy<SensorData> strategy = entity ->
+     *     "sensor_" + entity.getDeviceId();
+     *
+     * List<SensorData> largeDataList = createSameDeviceDataList();  // 10000条同设备数据
+     *
+     * // 每500条一批进行插入
+     * int[] rows = tdTemplate.batchInsertUsing(SensorData.class, largeDataList, 500, strategy);
+     * }</pre>
+     *
+     * @param clazz                   实体类 Class
+     * @param entityList              实体列表（TAG 值必须相同）
+     * @param pageSize                每批次大小
+     * @param dynamicTbNameStrategy   动态表名策略
+     * @param <T>                     实体类型
+     * @return 每批插入影响的行数数组
+     */
+    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, EntityTableNameStrategy dynamicTbNameStrategy) {
 
         // 目前仅支持同子表的数据批量插入, 所以随意取一个对象的tag的值都是一样的
         List<List<T>> partition = ListUtil.partition(entityList, pageSize);
@@ -239,8 +541,8 @@ public class TdTemplate {
             List<T> list = partition.get(i);
             Map<String, Object> paramsMap = new HashMap<>(list.size());
             paramsMap.putAll(tagValueMap);
-            StringBuilder finalSql = new StringBuilder(TdSqlUtil.getInsertUsingSqlPrefix(t, tbNameAndFieldsPair.getKey(),
-                    tbNameAndFieldsPair.getValue(), dynamicTbNameStrategy, paramsMap));
+            StringBuilder finalSql = new StringBuilder(TdSqlUtil.getInsertUsingSqlPrefix(t,
+                    ClassUtil.getAllFields(clazz), dynamicTbNameStrategy, paramsMap));
             joinInsetSqlSuffix(list, finalSql, paramsMap);
             int singleResult = namedParameterJdbcTemplate.update(finalSql.toString(), paramsMap);
             if (log.isDebugEnabled()) {

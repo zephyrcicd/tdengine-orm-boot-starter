@@ -1,9 +1,9 @@
 package com.zephyrcicd.tdengineorm.util;
 
 import cn.hutool.core.util.StrUtil;
-import com.sun.istack.internal.NotNull;
 import com.zephyrcicd.tdengineorm.func.GetterFunction;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Method;
