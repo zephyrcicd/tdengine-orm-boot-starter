@@ -194,6 +194,24 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
         return this;
     }
 
+    public TdQueryWrapper<T> isNull(String columnName) {
+        doIsNull(columnName);
+        return this;
+    }
+
+    public TdQueryWrapper<T> isNull(boolean condition, String columnName) {
+        return condition ? isNull(columnName) : this;
+    }
+
+    public TdQueryWrapper<T> isNull(GetterFunction<T, ?> getterFunc) {
+        return isNull(getColumnName(getterFunc));
+    }
+
+
+    public TdQueryWrapper<T> isNull(boolean condition, GetterFunction<T, ?> getterFunc) {
+        return condition ? isNull(getColumnName(getterFunc)) : this;
+    }
+
     public TdQueryWrapper<T> notNull(boolean condition, String columnName) {
         return condition ? notNull(columnName) : this;
     }
