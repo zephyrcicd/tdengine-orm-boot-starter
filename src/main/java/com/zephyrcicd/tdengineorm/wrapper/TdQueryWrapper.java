@@ -463,12 +463,12 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
         where
                 .append(SqlConstant.LEFT_BRACKET)
                 .append(columnName)
-                .append(SqlConstant.LE)
+                .append(SqlConstant.GT)
                 .append(SqlConstant.COLON)
                 .append(leftParamName)
                 .append(SqlConstant.AND)
                 .append(columnName)
-                .append(SqlConstant.GT)
+                .append(SqlConstant.LE)
                 .append(SqlConstant.COLON)
                 .append(rightParamName)
                 .append(SqlConstant.RIGHT_BRACKET);
