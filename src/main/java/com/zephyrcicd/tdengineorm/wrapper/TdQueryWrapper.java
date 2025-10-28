@@ -90,7 +90,12 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
         return selectCalc(getColumnName(aliasColumnFunc), consumer);
     }
 
-    public final TdQueryWrapper<T> selectFunc(TdSelectFuncEnum selectFuncEnum, String... columnNames) {
+    public <R> TdQueryWrapper<T> selectFunc(TdSelectFuncEnum selectFuncEnum, String columnName, GetterFunction<R, ?> aliasColumnName) {
+        addColumnName(TdSqlUtil.buildAggregationFunc(selectFuncEnum, columnName, LambdaUtil.getUnderlineFieldNameByGetter(aliasColumnName)));
+        return this;
+    }
+
+    public TdQueryWrapper<T> selectFunc(TdSelectFuncEnum selectFuncEnum, String... columnNames) {
         String[] array = Arrays.stream(columnNames)
                 .map(columnName -> TdSqlUtil.buildAggregationFunc(selectFuncEnum, columnName, columnName))
                 .toArray(String[]::new);
@@ -239,7 +244,6 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
         }
         return this;
     }
-
 
 
     public TdQueryWrapper<T> orderByDesc(String columnName) {
