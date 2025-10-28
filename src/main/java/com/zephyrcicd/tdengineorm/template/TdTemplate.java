@@ -213,55 +213,42 @@ public class TdTemplate {
         return resultList.stream().mapToInt(Integer::intValue).toArray();
     }
 
-    public <T> void batchInsertUsing(Class<T> clazz, List<T> entityList) {
-        batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
+    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList) {
+        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
     }
 
-    public <T> void batchInsertUsing(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, dynamicTbNameStrategy);
+    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, dynamicTbNameStrategy);
     }
 
-    public <T> void batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy dynamicTbNameStrategy) {
         // 获取超级表表名&所有字段
         Pair<String, List<Field>> tbNameAndFieldsPair = TdSqlUtil.getTbNameAndFieldListPair(clazz);
-        String sTbName = tbNameAndFieldsPair.getKey();
-        List<Field> fieldList = tbNameAndFieldsPair.getValue();
 
-        // 按照命名策略对数据进行分组,相同子表名的数据放在一起
-        Map<String, List<T>> tableGroupMap = new HashMap<>();
-        for (T entity : entityList) {
-            String childTbName = dynamicTbNameStrategy.dynamicTableName(entity, sTbName);
-            tableGroupMap.computeIfAbsent(childTbName, k -> new ArrayList<>()).add(entity);
-        }
+        // 目前仅支持同子表的数据批量插入, 所以随意取一个对象的tag的值都是一样的
+        List<List<T>> partition = ListUtil.partition(entityList, pageSize);
+        T t = partition.get(0).get(0);
 
-        // 对每个子表分组分别进行批量插入
-        for (Map.Entry<String, List<T>> entry : tableGroupMap.entrySet()) {
-            List<T> groupEntityList = entry.getValue();
+        List<Field> tagFields = ClassUtil.getAllFields(t.getClass()).stream()
+                .filter(field -> field.isAnnotationPresent(TdTag.class))
+                .collect(Collectors.toList());
 
-            // 获取该分组的第一个对象用于提取tag值
-            T firstEntity = groupEntityList.get(0);
-            List<Field> tagFields = ClassUtil.getAllFields(firstEntity.getClass()).stream()
-                    .filter(field -> field.isAnnotationPresent(TdTag.class))
-                    .collect(Collectors.toList());
-            Map<String, Object> tagValueMap = TdSqlUtil.getFiledValueMap(tagFields, firstEntity);
-
-            // 分批插入
-            List<List<T>> partition = ListUtil.partition(groupEntityList, pageSize);
-            for (List<T> list : partition) {
-                Map<String, Object> paramsMap = new HashMap<>(list.size());
-                paramsMap.putAll(tagValueMap);
-
-                // 使用第一个元素生成SQL前缀
-                T t = list.get(0);
-                StringBuilder finalSql = new StringBuilder(TdSqlUtil.getInsertUsingSqlPrefix(t, sTbName, fieldList, dynamicTbNameStrategy, paramsMap));
-                joinInsetSqlSuffix(list, finalSql, paramsMap);
-
-                int result = namedParameterJdbcTemplate.update(finalSql.toString(), paramsMap);
-                if (log.isDebugEnabled()) {
-                    log.debug("{} =====execute result====>{}", finalSql, result);
-                }
+        Map<String, Object> tagValueMap = TdSqlUtil.getFiledValueMap(tagFields, t);
+        int[] result = new int[partition.size()];
+        for (int i = 0; i < partition.size(); i++) {
+            List<T> list = partition.get(i);
+            Map<String, Object> paramsMap = new HashMap<>(list.size());
+            paramsMap.putAll(tagValueMap);
+            StringBuilder finalSql = new StringBuilder(TdSqlUtil.getInsertUsingSqlPrefix(t, tbNameAndFieldsPair.getKey(),
+                    tbNameAndFieldsPair.getValue(), dynamicTbNameStrategy, paramsMap));
+            joinInsetSqlSuffix(list, finalSql, paramsMap);
+            int singleResult = namedParameterJdbcTemplate.update(finalSql.toString(), paramsMap);
+            if (log.isDebugEnabled()) {
+                log.debug("{} =====execute result====>{}", finalSql, result);
             }
+            result[i] = singleResult;
         }
+        return result;
     }
 
     public <T> int deleteByTs(Class<T> clazz, Timestamp ts) {
