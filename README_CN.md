@@ -153,7 +153,23 @@ public class IoTDataService {
 }
 ```
 
-#### 5. 实体类定义示例
+#### 5. 查看更多使用示例
+
+项目的测试代码中包含了完整的使用示例，展示了各种插入场景的用法：
+
+**测试类位置**: `src/test/java/com/zephyrcicd/tdengineorm/template/TdTemplateInsertExampleTest.java`
+
+**包含的示例**:
+- 示例1-2: 基础插入操作（普通表、超级表）
+- 示例3-4: 动态表名策略插入（基于实体、基于Map）
+- 示例5: USING语法插入（自动创建子表）
+- 示例6-7: 批量插入到不同子表（默认/自定义批次大小）
+- 示例8-10: 批量USING插入（默认/自定义策略/自定义批次）
+- 示例11-12: 复杂场景（时间分表、Lambda表达式）
+
+**注意**: 这些测试用例仅作为使用示例，实际运行需要配置TDengine数据库连接。
+
+#### 6. 实体类定义示例
 
 ```java
 @TdTable("sensor_data")
@@ -328,3 +344,20 @@ public class Application {
 2. 如果同时引入多个连接池，将按照优先级选择一个
 3. 连接池的高级配置可以通过自定义 DataSource Bean 来覆盖默认配置
 4. 该 starter 与 Spring Boot 的自动配置兼容，不会冲突
+
+### Maven 构建说明
+
+由于测试代码需要实际的 TDengine 数据库连接，在打包项目时建议跳过测试：
+
+```bash
+# 跳过测试打包
+mvn clean package -DskipTests
+
+# 或者跳过测试安装到本地仓库
+mvn clean install -DskipTests
+```
+
+如果需要运行测试，请确保：
+1. TDengine 服务正在运行
+2. 配置文件中的数据库连接信息正确
+3. 测试数据库已创建并有相应权限
