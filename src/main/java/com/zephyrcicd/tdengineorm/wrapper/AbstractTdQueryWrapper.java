@@ -72,6 +72,9 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
         if (StrUtil.isNotBlank(windowFunc)) {
             sql.append(windowFunc);
         }
+        if (StrUtil.isNotBlank(groupBy)) {
+            sql.append(groupBy);
+        }
         if (StrUtil.isNotBlank(orderBy)) {
             sql.append(orderBy);
         }
