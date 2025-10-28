@@ -155,11 +155,12 @@ public class IoTDataService {
 
 #### 5. 查看更多使用示例
 
-项目的测试代码中包含了完整的使用示例，展示了各种插入场景的用法：
+项目中包含了完整的使用示例代码，展示了各种插入场景的用法：
 
-**测试类位置**: `src/test/java/com/zephyrcicd/tdengineorm/template/TdTemplateInsertExampleTest.java`
+**示例代码位置**: `src/test/java/com/zephyrcicd/tdengineorm/template/TdTemplateInsertExamples.java`
 
 **包含的示例**:
+- 示例0: 使用TdTemplate创建超级表
 - 示例1-2: 基础插入操作（普通表、超级表）
 - 示例3-4: 动态表名策略插入（基于实体、基于Map）
 - 示例5: USING语法插入（自动创建子表）
@@ -167,7 +168,42 @@ public class IoTDataService {
 - 示例8-10: 批量USING插入（默认/自定义策略/自定义批次）
 - 示例11-12: 复杂场景（时间分表、Lambda表达式）
 
-**注意**: 这些测试用例仅作为使用示例，实际运行需要配置TDengine数据库连接。
+**重要说明**:
+- 这些是纯示例代码，不是可运行的测试类
+- 请在您的Spring Boot项目中参考这些示例
+- 实际使用时，通过`@Autowired`注入`TdTemplate`即可
+
+**在您的项目中使用示例**:
+
+```java
+@Service
+public class IoTDataService {
+
+    @Autowired
+    private TdTemplate tdTemplate;
+
+    // 参考示例代码中的方法，直接使用 tdTemplate
+    public void saveData(SensorData data) {
+        // 示例1: 基础插入
+        tdTemplate.insert(data);
+
+        // 示例3: 动态表名插入
+        EntityTableNameStrategy<SensorData> strategy = entity ->
+            "sensor_" + entity.getDeviceId();
+        tdTemplate.insert(strategy, data);
+
+        // 示例5: USING语法插入（自动创建子表）
+        tdTemplate.insertUsing(data, strategy);
+    }
+
+    public void batchSaveData(List<SensorData> dataList) {
+        // 示例6: 批量插入到不同子表
+        EntityTableNameStrategy<SensorData> strategy = entity ->
+            "sensor_" + entity.getDeviceId();
+        tdTemplate.batchInsert(SensorData.class, dataList, strategy);
+    }
+}
+```
 
 #### 6. 实体类定义示例
 

@@ -3,11 +3,6 @@ package com.zephyrcicd.tdengineorm.template;
 import com.zephyrcicd.tdengineorm.entity.SensorData;
 import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.MapTableNameStrategy;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -15,31 +10,46 @@ import java.time.ZoneId;
 import java.util.*;
 
 /**
- * TdTemplate插入操作示例测试类
+ * TdTemplate插入操作使用示例代码
  *
- * <p>本测试类展示了TdTemplate的各种插入方法的使用示例</p>
- * <p>注意：这些测试用例仅作为使用示例，实际运行需要配置TDengine数据库连接</p>
+ * <p>本类展示了TdTemplate各种插入方法的使用示例</p>
+ * <p><b>重要说明：</b></p>
+ * <ul>
+ *     <li>这是纯示例代码，不是可运行的测试类</li>
+ *     <li>请在您的Spring Boot项目中参考这些示例使用TdTemplate</li>
+ *     <li>实际使用时，通过@Autowired注入TdTemplate即可</li>
+ * </ul>
+ *
+ * <p><b>在您的项目中使用示例：</b></p>
+ * <pre>{@code
+ * @Service
+ * public class IoTDataService {
+ *     @Autowired
+ *     private TdTemplate tdTemplate;
+ *
+ *     public void saveData() {
+ *         // 参考下面的示例方法，直接使用 tdTemplate
+ *         // 例如: tdTemplate.insert(data);
+ *     }
+ * }
+ * }</pre>
  *
  * @author Zephyr
  */
-@SpringBootTest
-@DisplayName("TdTemplate插入操作使用示例")
-public class TdTemplateInsertExampleTest {
+public class TdTemplateInsertExamples {
 
-    @Autowired
-    private TdTemplate tdTemplate;
+    // ==================== 创建超级表示例 ====================
 
     /**
-     * 创建超级表（在所有测试之前执行一次）
-     * 使用TdTemplate的createStableTable方法根据实体类自动创建超级表
+     * 示例0: 创建超级表
+     * <p>使用TdTemplate的createStableTableIfNotExist方法根据实体类自动创建超级表</p>
      */
-    @BeforeAll
-    public static void createSuperTable(@Autowired TdTemplate tdTemplate) {
+    public void example0_createSuperTable(TdTemplate tdTemplate) {
         System.out.println("开始创建超级表...");
 
-        // 使用TdTemplate的createStableTable方法创建超级表
+        // 使用TdTemplate的createStableTableIfNotExist方法创建超级表
         // 该方法会根据实体类的@TdTable和@TdTag注解自动生成CREATE STABLE语句
-        int result = tdTemplate.createStableTable(SensorData.class);
+        int result = tdTemplate.createStableTableIfNotExist(SensorData.class);
 
         System.out.println("超级表 sensor_data 创建成功，影响行数: " + result);
         System.out.println("表结构：");
@@ -49,9 +59,10 @@ public class TdTemplateInsertExampleTest {
 
     // ==================== 基础插入示例 ====================
 
-    @Test
-    @DisplayName("示例1: 插入单条数据到普通表")
-    public void example1_insertToNormalTable() {
+    /**
+     * 示例1: 插入单条数据到普通表
+     */
+    public void example1_insertToNormalTable(TdTemplate tdTemplate) {
         // 创建传感器数据
         SensorData data = SensorData.builder()
                 .deviceId("device001")
@@ -66,9 +77,10 @@ public class TdTemplateInsertExampleTest {
         System.out.println("插入影响行数: " + rows);
     }
 
-    @Test
-    @DisplayName("示例2: 插入单条数据到超级表（包含TAG字段）")
-    public void example2_insertToSuperTable() {
+    /**
+     * 示例2: 插入单条数据到超级表（包含TAG字段）
+     */
+    public void example2_insertToSuperTable(TdTemplate tdTemplate) {
         // 创建传感器数据，包含TAG字段值
         SensorData data = SensorData.builder()
                 .deviceId("device001")      // TAG字段
@@ -85,9 +97,10 @@ public class TdTemplateInsertExampleTest {
 
     // ==================== 动态表名插入示例 ====================
 
-    @Test
-    @DisplayName("示例3: 使用策略模式动态生成子表名插入")
-    public void example3_insertWithDynamicTableName() {
+    /**
+     * 示例3: 使用策略模式动态生成子表名插入
+     */
+    public void example3_insertWithDynamicTableName(TdTemplate tdTemplate) {
         // 创建传感器数据
         SensorData data = SensorData.builder()
                 .deviceId("device001")
@@ -107,9 +120,10 @@ public class TdTemplateInsertExampleTest {
         System.out.println("插入影响行数: " + rows);
     }
 
-    @Test
-    @DisplayName("示例4: 使用Map作为数据载体插入")
-    public void example4_insertWithMap() {
+    /**
+     * 示例4: 使用Map作为数据载体插入
+     */
+    public void example4_insertWithMap(TdTemplate tdTemplate) {
         // 使用Map存储数据
         Map<String, Object> dataMap = new HashMap<>();
         dataMap.put("temperature", 25.5);
@@ -129,9 +143,10 @@ public class TdTemplateInsertExampleTest {
 
     // ==================== USING语法插入示例 ====================
 
-    @Test
-    @DisplayName("示例5: 使用USING语法插入（自动创建子表）")
-    public void example5_insertUsing() {
+    /**
+     * 示例5: 使用USING语法插入（自动创建子表）
+     */
+    public void example5_insertUsing(TdTemplate tdTemplate) {
         // 创建传感器数据，包含TAG字段
         SensorData data = SensorData.builder()
                 .deviceId("device001")      // TAG字段
@@ -153,9 +168,10 @@ public class TdTemplateInsertExampleTest {
 
     // ==================== 批量插入示例 ====================
 
-    @Test
-    @DisplayName("示例6: 批量插入到不同子表（使用默认批次大小）")
-    public void example6_batchInsertToDifferentTables() {
+    /**
+     * 示例6: 批量插入到不同子表（使用默认批次大小）
+     */
+    public void example6_batchInsertToDifferentTables(TdTemplate tdTemplate) {
         // 创建多个设备的数据
         List<SensorData> dataList = new ArrayList<>();
         long baseTime = System.currentTimeMillis();
@@ -194,9 +210,10 @@ public class TdTemplateInsertExampleTest {
         System.out.println("总影响行数: " + Arrays.stream(rows).sum());
     }
 
-    @Test
-    @DisplayName("示例7: 批量插入到不同子表（自定义批次大小）")
-    public void example7_batchInsertWithCustomPageSize() {
+    /**
+     * 示例7: 批量插入到不同子表（自定义批次大小）
+     */
+    public void example7_batchInsertWithCustomPageSize(TdTemplate tdTemplate) {
         // 创建大量数据（10000条）
         List<SensorData> largeDataList = new ArrayList<>();
         long baseTime = System.currentTimeMillis();
@@ -226,9 +243,10 @@ public class TdTemplateInsertExampleTest {
 
     // ==================== 批量USING插入示例 ====================
 
-    @Test
-    @DisplayName("示例8: 使用USING语法批量插入（默认批次大小）")
-    public void example8_batchInsertUsing() {
+    /**
+     * 示例8: 使用USING语法批量插入（默认批次大小）
+     */
+    public void example8_batchInsertUsing(TdTemplate tdTemplate) {
         // 创建同一设备的多条数据
         List<SensorData> dataList = new ArrayList<>();
         long baseTime = System.currentTimeMillis();
@@ -249,9 +267,10 @@ public class TdTemplateInsertExampleTest {
         System.out.println("总影响行数: " + Arrays.stream(rows).sum());
     }
 
-    @Test
-    @DisplayName("示例9: 使用USING语法批量插入（自定义表名策略）")
-    public void example9_batchInsertUsingWithStrategy() {
+    /**
+     * 示例9: 使用USING语法批量插入（自定义表名策略）
+     */
+    public void example9_batchInsertUsingWithStrategy(TdTemplate tdTemplate) {
         // 创建同一设备的多条数据
         List<SensorData> dataList = new ArrayList<>();
         long baseTime = System.currentTimeMillis();
@@ -276,9 +295,10 @@ public class TdTemplateInsertExampleTest {
         System.out.println("总影响行数: " + Arrays.stream(rows).sum());
     }
 
-    @Test
-    @DisplayName("示例10: 使用USING语法批量插入（自定义批次大小）")
-    public void example10_batchInsertUsingWithCustomPageSize() {
+    /**
+     * 示例10: 使用USING语法批量插入（自定义批次大小）
+     */
+    public void example10_batchInsertUsingWithCustomPageSize(TdTemplate tdTemplate) {
         // 创建同一设备的大量历史数据（10000条）
         List<SensorData> largeDataList = new ArrayList<>();
         long baseTime = System.currentTimeMillis();
@@ -305,9 +325,10 @@ public class TdTemplateInsertExampleTest {
 
     // ==================== 复杂场景示例 ====================
 
-    @Test
-    @DisplayName("示例11: 根据时间动态分表插入")
-    public void example11_insertWithTimeBasedPartition() {
+    /**
+     * 示例11: 根据时间动态分表插入
+     */
+    public void example11_insertWithTimeBasedPartition(TdTemplate tdTemplate) {
         // 创建传感器数据
         long currentTimeMillis = System.currentTimeMillis();
         SensorData data = SensorData.builder()
@@ -335,9 +356,10 @@ public class TdTemplateInsertExampleTest {
         System.out.println("插入影响行数: " + rows);
     }
 
-    @Test
-    @DisplayName("示例12: 使用Lambda表达式的表名策略")
-    public void example12_insertWithLambdaStrategy() {
+    /**
+     * 示例12: 使用Lambda表达式的表名策略
+     */
+    public void example12_insertWithLambdaStrategy(TdTemplate tdTemplate) {
         // 创建多条数据
         List<SensorData> dataList = Arrays.asList(
                 SensorData.builder()
