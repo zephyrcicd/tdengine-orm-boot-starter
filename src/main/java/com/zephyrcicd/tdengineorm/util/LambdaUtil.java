@@ -1,6 +1,7 @@
 package com.zephyrcicd.tdengineorm.util;
 
 import cn.hutool.core.util.StrUtil;
+import com.sun.istack.internal.NotNull;
 import com.zephyrcicd.tdengineorm.func.GetterFunction;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,10 +14,13 @@ import java.lang.reflect.Method;
 @Slf4j
 public class LambdaUtil {
 
+    public static <T> String getUnderlineFieldNameByGetter(GetterFunction<T, ?> getterFunc) {
+        String methodName = getMethodName(getSerializedLambda(getterFunc));
+        return StrUtil.toUnderlineCase(methodName);
+    }
+
     public static <T> String getFiledNameByGetter(GetterFunction<T, ?> getterFunc) {
-        SerializedLambda serializedLambda = getSerializedLambda(getterFunc);
-        String methodName = serializedLambda.getImplMethodName();
-        methodName = FieldUtil.getFieldNameByMethod(methodName);
+        String methodName = getMethodName(getSerializedLambda(getterFunc));
         return StrUtil.lowerFirst(methodName);
     }
 
@@ -36,5 +40,10 @@ public class LambdaUtil {
             log.error("LambdaUtil#getFiledNameByGetterMethod error:{}", e.getMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    private static <T> @NotNull String getMethodName(SerializedLambda getterFunc) {
+        String methodName = getterFunc.getImplMethodName();
+        return FieldUtil.getFieldNameByMethod(methodName);
     }
 }
