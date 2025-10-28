@@ -333,7 +333,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
      * @param pageSize 页大小
      * @return {@link TdQueryWrapper}<{@link T}>
      */
-    public TdQueryWrapper<T> limit(int pageNo, int pageSize) {
+    public TdQueryWrapper<T> limit(long pageNo, long pageSize) {
         doLimit(pageNo, pageSize);
         return this;
     }

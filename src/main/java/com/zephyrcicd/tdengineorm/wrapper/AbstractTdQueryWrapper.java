@@ -87,7 +87,7 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
         limit = limitCount;
     }
 
-    protected void doLimit(int pageNo, int pageSize) {
+    protected void doLimit(long pageNo, long pageSize) {
         limit = SqlConstant.LIMIT + (pageNo - 1) + SqlConstant.COMMA + pageSize;
     }
 
