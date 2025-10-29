@@ -40,4 +40,12 @@ public @interface TdColumn {
      * 是否允许为空
      */
     boolean nullable() default true;
+
+    /**
+     * 是否为复合组件
+     * 注意：仅支持TDengine3.3.x.x以上的版本
+     *
+     * @return boolean
+     */
+    boolean compositeKey() default false;
 } 

@@ -479,6 +479,16 @@ public class TdSqlUtil {
                     .append(SqlConstant.BLANK)
                     .append(TdSqlUtil.getFieldTypeAndLength(field));
 
+            // 组合主键，仅支持 TDengine 3.3.x 以上版本
+            TdColumn tableField = field.getAnnotation(TdColumn.class);
+            if (tableField != null && tableField.compositeKey()) {
+                TdTag tdTag = field.getAnnotation(TdTag.class);
+                if (tdTag != null) {
+                    throw new TdOrmException(TdOrmExceptionCode.TAG_FIELD_CAN_NOT_BE_COMPOSITE_FIELD);
+                }
+                finalSb.append(TdSqlConstant.COMPOSITE_KEY);
+            }
+
             // 最后一个不用➕逗号
             if (i != fields.size() - 1) {
                 finalSb.append(SqlConstant.COMMA);
