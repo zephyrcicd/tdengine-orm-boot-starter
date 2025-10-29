@@ -1,7 +1,5 @@
 package com.zephyrcicd.tdengineorm.wrapper;
 
-import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.StrUtil;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.enums.JoinTypeEnum;
 import com.zephyrcicd.tdengineorm.enums.TdSelectFuncEnum;
@@ -17,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -50,7 +49,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
 
 
     public <R> TdQueryWrapper<T> selectAlias(String columnName, GetterFunction<R, ?> aliasGetter) {
-        String column = StrUtil.format("{} {}", columnName, LambdaUtil.getUnderlineFieldNameByGetter(aliasGetter));
+        String column = String.format("%s %s", columnName, LambdaUtil.getUnderlineFieldNameByGetter(aliasGetter));
 
         String[] columns = {column};
         addColumnNames(columns);
@@ -63,7 +62,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
     }
 
     public TdQueryWrapper<T> select(GetterFunction<T, ?>... getterFuncArray) {
-        if (ArrayUtil.isEmpty(getterFuncArray)) {
+        if (getterFuncArray == null || getterFuncArray.length == 0) {
             throw new TdOrmException(TdOrmExceptionCode.NO_SELECT);
         }
 
@@ -75,7 +74,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
     }
 
     public <R> TdQueryWrapper<T> select(Class<R> clazz, GetterFunction<R, ?>... getterFuncArray) {
-        if (ArrayUtil.isEmpty(getterFuncArray)) {
+        if (getterFuncArray == null || getterFuncArray.length == 0) {
             throw new TdOrmException(TdOrmExceptionCode.NO_SELECT);
         }
 
@@ -245,7 +244,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
 
 
     public TdQueryWrapper<T> orderByAsc(String columnName) {
-        if (StrUtil.isNotBlank(orderBy)) {
+        if (orderBy.length() > 0) {
             orderBy.append(SqlConstant.COMMA);
             orderBy.append(columnName);
         } else {
@@ -256,7 +255,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
 
 
     public TdQueryWrapper<T> orderByDesc(String columnName) {
-        if (StrUtil.isNotBlank(orderBy)) {
+        if (orderBy.length() > 0) {
             orderBy.append(SqlConstant.COMMA);
             orderBy.append(columnName);
         } else {
@@ -427,7 +426,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
     }
 
     public TdQueryWrapper<T> like(String columnName, Object value) {
-        addWhereParam(StrUtil.format("%{}%", value), columnName, genParamName(), SqlConstant.LIKE);
+        addWhereParam(String.format("%%%s%%", value), columnName, genParamName(), SqlConstant.LIKE);
         return this;
     }
 
@@ -453,7 +452,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
      * @return {@link TdQueryWrapper }<{@link T }>
      */
     public TdQueryWrapper<T> between(String columnName, Object leftValue, Object rightValue) {
-        if (StrUtil.isNotBlank(where)) {
+        if (where.length() > 0) {
             where.append(SqlConstant.AND);
         }
 
@@ -500,7 +499,7 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
 
 
     public TdQueryWrapper<T> groupBy(String columnName) {
-        if (StrUtil.isNotBlank(groupBy)) {
+        if (StringUtils.hasText(groupBy)) {
             throw new TdOrmException(TdOrmExceptionCode.MULTI_GROUP_BY);
         }
         groupBy = SqlConstant.GROUP_BY + columnName + SqlConstant.BLANK;

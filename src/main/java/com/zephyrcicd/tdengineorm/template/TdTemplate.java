@@ -1,9 +1,7 @@
 package com.zephyrcicd.tdengineorm.template;
 
-import cn.hutool.core.collection.ListUtil;
-import cn.hutool.core.lang.Pair;
-import cn.hutool.json.JSONUtil;
 import com.zephyrcicd.tdengineorm.annotation.TdTag;
+import com.zephyrcicd.tdengineorm.config.TdOrmConfig;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.constant.TdSqlConstant;
 import com.zephyrcicd.tdengineorm.dto.Page;
@@ -16,7 +14,7 @@ import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.MapTableNameStrategy;
 import com.zephyrcicd.tdengineorm.util.AssertUtil;
 import com.zephyrcicd.tdengineorm.util.ClassUtil;
-import com.zephyrcicd.tdengineorm.util.TdOrmUtil;
+import com.zephyrcicd.tdengineorm.util.JsonUtil;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdQueryWrapper;
@@ -24,12 +22,15 @@ import com.zephyrcicd.tdengineorm.wrapper.TdWrappers;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.data.util.Pair;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
+
 
 /**
  * TDengine 数据访问模板类
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 public class TdTemplate {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    private final TdOrmConfig tdOrmConfig;
     public static final Integer DEFAULT_BATCH_SIZE = 500;
 
 
@@ -57,7 +59,7 @@ public class TdTemplate {
         // 区分普通字段和Tag字段
         Pair<List<Field>, List<Field>> fieldListPairByTag = TdSqlUtil.differentiateByTag(fieldList);
 
-        List<Field> commFieldList = fieldListPairByTag.getValue();
+        List<Field> commFieldList = fieldListPairByTag.getSecond();
         if (CollectionUtils.isEmpty(commFieldList)) {
             throw new TdOrmException(TdOrmExceptionCode.NO_COMM_FIELD);
         }
@@ -65,7 +67,7 @@ public class TdTemplate {
         Field primaryTsField = TdSqlUtil.checkPrimaryTsField(commFieldList);
 
         String finalSql = TdSqlConstant.CREATE_STABLE_IF_NOT_EXIST + TdSqlUtil.getTbName(clazz) + TdSqlUtil.buildCreateColumn(commFieldList, primaryTsField);
-        List<Field> tagFieldList = fieldListPairByTag.getKey();
+        List<Field> tagFieldList = fieldListPairByTag.getFirst();
 
         if (CollectionUtils.isEmpty(tagFieldList)) {
             throw new TdOrmException(TdOrmExceptionCode.NO_TAG_FIELD);
@@ -268,8 +270,8 @@ public class TdTemplate {
         Pair<String, Map<String, Object>> finalSqlAndParamsMapPair = TdSqlUtil.getFinalInsertUsingSql(object,
                 ClassUtil.getAllFields(object.getClass()), dynamicTbNameStrategy);
 
-        String finalSql = finalSqlAndParamsMapPair.getKey();
-        Map<String, Object> paramsMap = finalSqlAndParamsMapPair.getValue();
+        String finalSql = finalSqlAndParamsMapPair.getFirst();
+        Map<String, Object> paramsMap = finalSqlAndParamsMapPair.getSecond();
 
         return updateWithTdLog(finalSql, paramsMap);
     }
@@ -322,6 +324,9 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, int pageSize, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
+        if (pageSize <= 0) {
+            throw new IllegalArgumentException("Partition size must be greater than zero");
+        }
         // 不使用USING语法时, 不能指定TAG字段的值
         List<Field> fieldList = ClassUtil.getAllFields(clazz, field -> !field.isAnnotationPresent(TdTag.class));
 
@@ -340,7 +345,7 @@ public class TdTemplate {
             List<T> groupEntityList = entry.getValue();
 
             // 以防数据量过大, 分批进行插入
-            List<List<T>> partition = ListUtil.partition(groupEntityList, pageSize);
+            List<List<T>> partition = ListUtils.partition(groupEntityList, pageSize);
 
             for (List<T> list : partition) {
                 Map<String, Object> paramsMap = new HashMap<>(list.size());
@@ -398,6 +403,9 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public int[] batchInsert(String tableName, List<Map<String, Object>> dataList, int pageSize) {
+        if (pageSize <= 0) {
+            throw new IllegalArgumentException("Partition size must be greater than zero");
+        }
         AssertUtil.notBlank(tableName, new TdOrmException(TdOrmExceptionCode.TABLE_NAME_BLANK));
         if (CollectionUtils.isEmpty(dataList)) {
             return new int[0];
@@ -409,7 +417,7 @@ public class TdTemplate {
         String sqlPrefix = buildInsertSqlPrefix(tableName, columnNames);
 
         // 分批进行插入
-        List<List<Map<String, Object>>> partition = ListUtil.partition(dataList, pageSize);
+        List<List<Map<String, Object>>> partition = ListUtils.partition(dataList, pageSize);
         List<Integer> resultList = new ArrayList<>();
         int processedCount = 0; // 全局计数器，确保参数名唯一
 
@@ -470,6 +478,9 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public int[] batchInsert(List<Map<String, Object>> dataList, MapTableNameStrategy strategy, int pageSize) {
+        if (pageSize <= 0) {
+            throw new IllegalArgumentException("Partition size must be greater than zero");
+        }
         if (CollectionUtils.isEmpty(dataList)) {
             return new int[0];
         }
@@ -495,7 +506,7 @@ public class TdTemplate {
             String sqlPrefix = buildInsertSqlPrefix(tbName, columnNames);
 
             // 以防数据量过大, 分批进行插入
-            List<List<Map<String, Object>>> partition = ListUtil.partition(groupDataList, pageSize);
+            List<List<Map<String, Object>>> partition = ListUtils.partition(groupDataList, pageSize);
             int processedCount = 0; // 当前表的全局计数器
 
             for (List<Map<String, Object>> batch : partition) {
@@ -593,7 +604,10 @@ public class TdTemplate {
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
 
         // 目前仅支持同子表的数据批量插入, 所以随意取一个对象的tag的值都是一样的
-        List<List<T>> partition = ListUtil.partition(entityList, pageSize);
+        if (pageSize <= 0) {
+            throw new IllegalArgumentException("Partition size must be greater than zero");
+        }
+        List<List<T>> partition = ListUtils.partition(entityList, pageSize);
         T t = partition.get(0).get(0);
 
         List<Field> tagFields = ClassUtil.getAllFields(t.getClass()).stream()
@@ -635,21 +649,23 @@ public class TdTemplate {
     }
 
 
-    private static void tdLog(String sql, Map<String, Object> paramsMap) {
-        TdLogLevelEnum tdLogLevelEnum = TdOrmUtil.getLogLevel();
-        if (null != tdLogLevelEnum) {
-            String logFormat = "【TDengineMapperLog】 \n【SQL】 : {} \n【Params】: {}";
-            switch (tdLogLevelEnum) {
-                case DEBUG:
-                    if (log.isDebugEnabled()) {
-                        log.debug(logFormat, sql, JSONUtil.toJsonStr(paramsMap));
-                    }
-                    break;
-                case INFO:
-                    log.info(logFormat, sql, JSONUtil.toJsonStr(paramsMap));
-                    break;
-                default:
-            }
+    private void tdLog(String sql, Map<String, Object> paramsMap) {
+        TdLogLevelEnum tdLogLevelEnum = tdOrmConfig == null ? null : tdOrmConfig.getLogLevel();
+        if (tdLogLevelEnum == null) {
+            return;
+        }
+        String logFormat = "【TDengineMapperLog】 \n【SQL】 : {} \n【Params】: {}";
+        String paramsJson = JsonUtil.toJson(paramsMap);
+        switch (tdLogLevelEnum) {
+            case DEBUG:
+                if (log.isDebugEnabled()) {
+                    log.debug(logFormat, sql, paramsJson);
+                }
+                break;
+            case INFO:
+                log.info(logFormat, sql, paramsJson);
+                break;
+            default:
         }
     }
 
@@ -742,8 +758,8 @@ public class TdTemplate {
             T entity = list.get(i);
             List<Field> fields = ClassUtil.getAllFields(entity.getClass(), field -> !field.isAnnotationPresent(TdTag.class));
             Pair<String, Map<String, Object>> insertSqlSuffix = TdSqlUtil.getInsertSqlSuffix(entity, fields, i);
-            finalSql.append(insertSqlSuffix.getKey());
-            paramsMap.putAll(insertSqlSuffix.getValue());
+            finalSql.append(insertSqlSuffix.getFirst());
+            paramsMap.putAll(insertSqlSuffix.getSecond());
         }
     }
 

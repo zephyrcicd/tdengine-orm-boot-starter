@@ -1,6 +1,5 @@
 package com.zephyrcicd.tdengineorm.wrapper;
 
-import cn.hutool.core.util.StrUtil;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.enums.TdSelectFuncEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
@@ -26,7 +25,7 @@ public abstract class AbstractSelectCalc {
 
     public String getFinalSelectSql() {
         if (CollectionUtils.isEmpty(selectColumnList)) {
-            return StrUtil.EMPTY;
+            return "";
         }
         AssertUtil.notBlank(getFinalColumnAliasName(), new TdOrmException(TdOrmExceptionCode.COLUMN_NO_ALIAS_NAME));
         StringBuilder finalSelectColumn = new StringBuilder(SqlConstant.LEFT_BRACKET);

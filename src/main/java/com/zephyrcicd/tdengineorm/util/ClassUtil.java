@@ -1,12 +1,10 @@
 package com.zephyrcicd.tdengineorm.util;
 
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
@@ -27,13 +25,17 @@ public class ClassUtil {
      * @return List<Field>
      */
     public static List<Field> getAllFields(Class<?> clazz) {
-        List<Field> fieldList = new ArrayList<>(Arrays.asList(cn.hutool.core.util.ClassUtil.getDeclaredFields(clazz)));
-        Class<?> superClass = clazz.getSuperclass();
-        // 递归获取父类Class的所有Field
-        if (superClass != null && superClass != Object.class) {
-            fieldList.addAll(getAllFields(superClass));
+        Assert.notNull(clazz, "ClassUtil#getAllFields: Class must not be null");
+        List<Field> fieldList = new ArrayList<>();
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            Field[] declaredFields = current.getDeclaredFields();
+            for (Field field : declaredFields) {
+                field.setAccessible(true);
+                fieldList.add(field);
+            }
+            current = current.getSuperclass();
         }
-
         return fieldList;
     }
 
@@ -56,11 +58,18 @@ public class ClassUtil {
      * @return {@link Field }
      */
     public static Field getFieldByName(Class<?> clazz, String name) {
-        Field field = cn.hutool.core.util.ClassUtil.getDeclaredField(clazz, name);
-        if (field == null && !clazz.getSuperclass().equals(Object.class)) {
-            field = getFieldByName(clazz.getSuperclass(), name);
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            try {
+                Field field = current.getDeclaredField(name);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException ignored) {
+                // continue searching super classes
+            }
+            current = current.getSuperclass();
         }
-        return field;
+        return null;
     }
 
 
@@ -72,8 +81,8 @@ public class ClassUtil {
      */
     public static String getClassUnderLineName(Class<?> clazz) {
         Assert.notNull(clazz, "ClassUtil#getClassUnderLineName: Class must not be null");
-        return StrUtil.toUnderlineCase(clazz.getSimpleName());
-    }
+        return FieldUtil.toUnderlineCase(clazz.getSimpleName());
+}
 
     /**
      * 获取所有字段名

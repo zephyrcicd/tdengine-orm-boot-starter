@@ -1,6 +1,5 @@
 package com.zephyrcicd.tdengineorm.util;
 
-import cn.hutool.core.util.StrUtil;
 import com.zephyrcicd.tdengineorm.func.GetterFunction;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -16,12 +15,12 @@ public class LambdaUtil {
 
     public static <T> String getUnderlineFieldNameByGetter(GetterFunction<T, ?> getterFunc) {
         String methodName = getMethodName(getSerializedLambda(getterFunc));
-        return StrUtil.toUnderlineCase(methodName);
+        return FieldUtil.toUnderlineCase(methodName);
     }
 
     public static <T> String getFiledNameByGetter(GetterFunction<T, ?> getterFunc) {
         String methodName = getMethodName(getSerializedLambda(getterFunc));
-        return StrUtil.lowerFirst(methodName);
+        return FieldUtil.lowerFirst(methodName);
     }
 
     @SuppressWarnings("unchecked")

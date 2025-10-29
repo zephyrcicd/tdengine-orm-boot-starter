@@ -1,6 +1,5 @@
 package com.zephyrcicd.tdengineorm.config;
 
-import cn.hutool.core.util.StrUtil;
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -11,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 
@@ -41,7 +41,7 @@ public class TdOrmAutoConfiguration {
             Object druidDataSource = druidDataSourceClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StrUtil.isNotBlank(tdOrmConfig.getUrl())) {
+            if (StringUtils.hasText(tdOrmConfig.getUrl())) {
                 druidDataSourceClass.getMethod("setUrl", String.class).invoke(druidDataSource, tdOrmConfig.getUrl());
             }
             druidDataSourceClass.getMethod("setUsername", String.class).invoke(druidDataSource, tdOrmConfig.getUsername());
@@ -79,7 +79,7 @@ public class TdOrmAutoConfiguration {
             Object hikariConfig = hikariConfigClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StrUtil.isNotBlank(tdOrmConfig.getUrl())) {
+            if (StringUtils.hasText(tdOrmConfig.getUrl())) {
                 hikariConfigClass.getMethod("setJdbcUrl", String.class).invoke(hikariConfig, tdOrmConfig.getUrl());
             }
             hikariConfigClass.getMethod("setUsername", String.class).invoke(hikariConfig, tdOrmConfig.getUsername());
@@ -112,7 +112,7 @@ public class TdOrmAutoConfiguration {
             Object basicDataSource = basicDataSourceClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StrUtil.isNotBlank(tdOrmConfig.getUrl())) {
+            if (StringUtils.hasText(tdOrmConfig.getUrl())) {
                 basicDataSourceClass.getMethod("setUrl", String.class).invoke(basicDataSource, tdOrmConfig.getUrl());
             }
             basicDataSourceClass.getMethod("setUsername", String.class).invoke(basicDataSource, tdOrmConfig.getUsername());
@@ -148,7 +148,7 @@ public class TdOrmAutoConfiguration {
             Class<?> driverManagerDataSourceClass = Class.forName("org.springframework.jdbc.datasource.DriverManagerDataSource");
             Object dataSource = driverManagerDataSourceClass.getDeclaredConstructor().newInstance();
 
-            if (StrUtil.isNotBlank(tdOrmConfig.getUrl())) {
+            if (StringUtils.hasText(tdOrmConfig.getUrl())) {
                 driverManagerDataSourceClass.getMethod("setUrl", String.class).invoke(dataSource, tdOrmConfig.getUrl());
             }
             driverManagerDataSourceClass.getMethod("setUsername", String.class).invoke(dataSource, tdOrmConfig.getUsername());
@@ -184,7 +184,8 @@ public class TdOrmAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(TdTemplate.class)
-    public TdTemplate tdTemplate(@Qualifier(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE) NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
-        return new TdTemplate(namedParameterJdbcTemplate);
+    public TdTemplate tdTemplate(@Qualifier(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE) NamedParameterJdbcTemplate namedParameterJdbcTemplate,
+                                 TdOrmConfig tdOrmConfig) {
+        return new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
     }
 }

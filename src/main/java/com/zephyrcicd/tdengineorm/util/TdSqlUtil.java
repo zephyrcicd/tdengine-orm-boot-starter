@@ -1,10 +1,5 @@
 package com.zephyrcicd.tdengineorm.util;
 
-import cn.hutool.core.annotation.AnnotationUtil;
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.lang.Pair;
-import cn.hutool.core.util.ReflectUtil;
-import cn.hutool.core.util.StrUtil;
 import com.zephyrcicd.tdengineorm.annotation.TdColumn;
 import com.zephyrcicd.tdengineorm.annotation.TdTable;
 import com.zephyrcicd.tdengineorm.annotation.TdTag;
@@ -18,7 +13,9 @@ import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.func.GetterFunction;
 import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.util.Pair;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
@@ -35,12 +32,12 @@ public class TdSqlUtil {
     public static String getTbName(Class<?> entityClass) {
         String tbNameByAnno = getTbNameByAnno(entityClass);
         return StringUtils.hasText(tbNameByAnno) ?
-                tbNameByAnno : StrUtil.toUnderlineCase(entityClass.getSimpleName());
+                tbNameByAnno : FieldUtil.toUnderlineCase(entityClass.getSimpleName());
     }
 
     public static String getTbNameByAnno(Class<?> entityClass) {
         TdTable annotation = entityClass.getAnnotation(TdTable.class);
-        return annotation == null ? StrUtil.EMPTY : annotation.value();
+        return annotation == null ? "" : annotation.value();
     }
 
     public static Collector<CharSequence, ?, String> getParenthesisCollector() {
@@ -115,7 +112,7 @@ public class TdSqlUtil {
         String suffixSql = fields.stream()
                 .map(field -> {
                     String fieldName = field.getName();
-                    paramsMapList.put(fieldName + index, ReflectUtil.getFieldValue(entity, field));
+                    paramsMapList.put(fieldName + index, getFieldValue(entity, field));
                     return ":" + fieldName + index;
                 })
                 .collect(getColumnWithBracketCollector());
@@ -166,7 +163,7 @@ public class TdSqlUtil {
     }
 
     private static String buildColumnSql(String idFieldName, List<String> paramNameList, List<String> updateColumnList, String fieldName) {
-        String columnName = StrUtil.toUnderlineCase(fieldName);
+        String columnName = FieldUtil.toUnderlineCase(fieldName);
         String paramName = SqlConstant.COLON + fieldName;
         paramNameList.add(paramName);
         if (!Arrays.asList("createTime", idFieldName).contains(fieldName)) {
@@ -188,13 +185,10 @@ public class TdSqlUtil {
 
     private static String getColumnName(Field field, String fieldName) {
         TdColumn tableFieldAnno = field.getAnnotation(TdColumn.class);
-        String columnName;
-        if (tableFieldAnno != null) {
-            columnName = tableFieldAnno.value();
-        } else {
-            columnName = StrUtil.toUnderlineCase(fieldName);
+        if (tableFieldAnno != null && StringUtils.hasText(tableFieldAnno.value())) {
+            return tableFieldAnno.value();
         }
-        return columnName;
+        return FieldUtil.toUnderlineCase(fieldName);
     }
 
 
@@ -219,10 +213,10 @@ public class TdSqlUtil {
 
         // 拼接INSERT INTO语句的初始化 SQL
         return new StringBuilder(SqlConstant.INSERT_INTO)
-                .append(StrUtil.isBlankIfStr(defaultTbName) ? getTbName(entityClass) : defaultTbName)
-                .append(columnNameSqlAndParamNameSqlPair.getKey())
+                .append(StringUtils.hasText(defaultTbName) ? defaultTbName : getTbName(entityClass))
+                .append(columnNameSqlAndParamNameSqlPair.getFirst())
                 .append(SqlConstant.VALUES)
-                .append(columnNameSqlAndParamNameSqlPair.getValue());
+                .append(columnNameSqlAndParamNameSqlPair.getSecond());
     }
 
 
@@ -231,7 +225,7 @@ public class TdSqlUtil {
         List<String> columNames = new ArrayList<>();
         List<String> paramsNames = new ArrayList<>();
         keySet.forEach(key -> {
-            columNames.add(StrUtil.toUnderlineCase(key));
+            columNames.add(FieldUtil.toUnderlineCase(key));
             paramsNames.add(SqlConstant.COLON + key);
         });
 
@@ -249,9 +243,9 @@ public class TdSqlUtil {
         // 拼接INSERT INTO语句的初始化 SQL
         return new StringBuilder(SqlConstant.INSERT_INTO)
                 .append(tbName)
-                .append(columnNameSqlAndParamNameSqlPair.getKey())
+                .append(columnNameSqlAndParamNameSqlPair.getFirst())
                 .append(SqlConstant.VALUES)
-                .append(columnNameSqlAndParamNameSqlPair.getValue());
+                .append(columnNameSqlAndParamNameSqlPair.getSecond());
     }
 
 
@@ -264,9 +258,11 @@ public class TdSqlUtil {
      */
     public static String getColumnName(Field field) {
         TdColumn tableField = field.getAnnotation(TdColumn.class);
-        String fieldNameUnderlineCase = StrUtil.toUnderlineCase(field.getName());
-        return tableField == null ? fieldNameUnderlineCase
-                : StrUtil.isBlank(tableField.value()) ? fieldNameUnderlineCase : tableField.value();
+        String fieldNameUnderlineCase = FieldUtil.toUnderlineCase(field.getName());
+        if (tableField == null || !StringUtils.hasText(tableField.value())) {
+            return fieldNameUnderlineCase;
+        }
+        return tableField.value();
     }
 
     /**
@@ -277,7 +273,7 @@ public class TdSqlUtil {
      */
     public static String joinColumnNames(List<Field> fields) {
         if (CollectionUtils.isEmpty(fields)) {
-            return StrUtil.EMPTY;
+            return "";
         }
 
         return fields.stream().map(TdSqlUtil::getColumnName).collect(getColumnWithoutBracketCollector());
@@ -292,7 +288,7 @@ public class TdSqlUtil {
      */
     public static String joinColumnNamesWithBracket(List<Field> fields) {
         if (CollectionUtils.isEmpty(fields)) {
-            return StrUtil.EMPTY;
+            return "";
         }
 
         return fields.stream().map(TdSqlUtil::getColumnName).collect(getColumnWithBracketCollector());
@@ -317,21 +313,21 @@ public class TdSqlUtil {
     public static Map<String, Object> getFiledValueMap(List<Field> fields, Object o) {
         Map<String, Object> tagValueMap = new HashMap<>(fields.size());
         for (Field field : fields) {
-            tagValueMap.put(field.getName(), ReflectUtil.getFieldValue(o, field));
+            tagValueMap.put(field.getName(), getFieldValue(o, field));
         }
         return tagValueMap;
     }
 
     public static String joinColumnNamesAndValuesSql(Object object, List<Field> fields, Map<String, Object> paramsMap) {
         if (CollectionUtils.isEmpty(fields)) {
-            return StrUtil.EMPTY;
+            return "";
         }
 
         List<String> fieldValueParamNames = new ArrayList<>();
         String fieldNameStr = fields.stream().map(field -> {
             String columnName = TdSqlUtil.getColumnName(field);
             fieldValueParamNames.add(columnName);
-            paramsMap.put(columnName, ReflectUtil.getFieldValue(object, field));
+            paramsMap.put(columnName, getFieldValue(object, field));
             return columnName;
         }).collect(TdSqlUtil.getColumnWithBracketCollector());
 
@@ -345,15 +341,17 @@ public class TdSqlUtil {
     public static <T> String getColumnName(GetterFunction<T, ?> getterFunc) {
         String fieldName = LambdaUtil.getFiledNameByGetter(getterFunc);
         Field field = ClassUtil.getFieldByName(LambdaUtil.getEntityClass(getterFunc), fieldName);
-        String tableFiledAnnoValue = AnnotationUtil.getAnnotationValue(field, TdColumn.class, "value");
-        return StrUtil.isNotBlank(tableFiledAnnoValue) ? tableFiledAnnoValue : StrUtil.toUnderlineCase(fieldName);
+        TdColumn column = field == null ? null : field.getAnnotation(TdColumn.class);
+        String tableFiledAnnoValue = column == null ? null : column.value();
+        return StringUtils.hasText(tableFiledAnnoValue) ? tableFiledAnnoValue : FieldUtil.toUnderlineCase(fieldName);
     }
 
     public static <T> String getColumnName(Class<T> tClass, GetterFunction<T, ?> getterFunc) {
         String fieldName = LambdaUtil.getFiledNameByGetter(getterFunc);
         Field field = ClassUtil.getFieldByName(tClass, fieldName);
-        String tableFiledAnnoValue = AnnotationUtil.getAnnotationValue(field, TdColumn.class, "value");
-        return StrUtil.isNotBlank(tableFiledAnnoValue) ? tableFiledAnnoValue : StrUtil.toUnderlineCase(fieldName);
+        TdColumn column = field == null ? null : field.getAnnotation(TdColumn.class);
+        String tableFiledAnnoValue = column == null ? null : column.value();
+        return StringUtils.hasText(tableFiledAnnoValue) ? tableFiledAnnoValue : FieldUtil.toUnderlineCase(fieldName);
     }
 
     public static <T> String joinSqlValue(T entity, List<Field> fields, Map<String, Object> paramsMapList, int index) {
@@ -364,7 +362,7 @@ public class TdSqlUtil {
         return commFields.stream()
                 .map(field -> {
                     String fieldName = field.getName();
-                    paramsMapList.put(fieldName + index, ReflectUtil.getFieldValue(entity, field));
+                    paramsMapList.put(fieldName + index, getFieldValue(entity, field));
                     return ":" + fieldName + index;
                 })
                 .collect(TdSqlUtil.getColumnWithBracketCollector());
@@ -374,9 +372,9 @@ public class TdSqlUtil {
         // 根据是否为TAG字段做分组
         Pair<List<Field>, List<Field>> fieldsPair = differentiateByTag(fieldList);
         // 获取TAGS字段名称&对应的值
-        String tagFieldSql = getTagFieldNameAndValuesSql(object, fieldsPair.getKey(), map, true);
+        String tagFieldSql = getTagFieldNameAndValuesSql(object, fieldsPair.getFirst(), map, true);
         // 获取普通字段的名称
-        String commFieldSql = TdSqlUtil.joinColumnNamesWithBracket(fieldsPair.getValue());
+        String commFieldSql = TdSqlUtil.joinColumnNamesWithBracket(fieldsPair.getSecond());
         // 根据策略生成表名(传入实体对象以支持基于数据的命名)
         return SqlConstant.INSERT_INTO + dynamicTbNameStrategy.getTableName(object)
                 + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql + SqlConstant.VALUES;
@@ -391,9 +389,9 @@ public class TdSqlUtil {
         Pair<List<Field>, List<Field>> fieldsPair = differentiateByTag(fieldList);
 
         // 获取TAGS字段相关SQL
-        String tagFieldSql = getTagFieldNameAndValuesSql(object, fieldsPair.getKey(), paramsMap, true);
+        String tagFieldSql = getTagFieldNameAndValuesSql(object, fieldsPair.getFirst(), paramsMap, true);
         // 获取普通字段相关SQL
-        String commFieldSql = getTagFieldNameAndValuesSql(object, fieldsPair.getValue(), paramsMap, false);
+        String commFieldSql = getTagFieldNameAndValuesSql(object, fieldsPair.getSecond(), paramsMap, false);
 
         // 根据策略生成表名(传入实体对象以支持基于数据的命名)
         String childTbName = dynamicTbNameStrategy.getTableName(object);
@@ -420,15 +418,15 @@ public class TdSqlUtil {
 
     public static String getTagFieldNameAndValuesSql(Object object, List<Field> fields, Map<String, Object> paramsMap, boolean isTag) {
         if (CollectionUtils.isEmpty(fields)) {
-            return StrUtil.EMPTY;
+            return "";
         }
 
         List<String> fieldValueParamNames = new ArrayList<>();
         String fieldNameStr = fields.stream().map(field -> {
             String fieldName = field.getName();
             fieldValueParamNames.add(field.getName());
-            paramsMap.put(fieldName, ReflectUtil.getFieldValue(object, field));
-            return StrUtil.toUnderlineCase(fieldName);
+            paramsMap.put(fieldName, getFieldValue(object, field));
+            return FieldUtil.toUnderlineCase(fieldName);
         }).collect(TdSqlUtil.getColumnWithBracketCollector());
 
         String fieldValueParamsStr = fieldValueParamNames.stream().map(item -> ":" + item).collect(TdSqlUtil.getColumnWithBracketCollector());
@@ -462,7 +460,7 @@ public class TdSqlUtil {
     public static String buildCreateColumn(List<Field> fields, Field primaryTsField) {
         fields.remove(primaryTsField);
 
-        String tsColumn = primaryTsField == null ? StrUtil.EMPTY
+        String tsColumn = primaryTsField == null ? ""
                 : SqlConstant.HALF_ANGLE_DASH
                 + TdSqlUtil.getColumnName(primaryTsField)
                 + SqlConstant.HALF_ANGLE_DASH
@@ -498,7 +496,7 @@ public class TdSqlUtil {
      * @return {@link List }<{@link Field }>
      */
     public static List<Field> getNoTagFieldList(Class<?> clazz) {
-        return ClassUtil.getAllFields(clazz, field -> !AnnotationUtil.hasAnnotation(field, TdTag.class));
+        return ClassUtil.getAllFields(clazz, field -> !field.isAnnotationPresent(TdTag.class));
     }
 
 
@@ -518,7 +516,24 @@ public class TdSqlUtil {
         return tsFieldList.get(0);
     }
 
+    private static Object getFieldValue(Object target, Field field) {
+        ReflectionUtils.makeAccessible(field);
+        return ReflectionUtils.getField(field, target);
+    }
+
     public static String buildAggregationFunc(TdSelectFuncEnum tdSelectFuncEnum, String columnName, String aliasName) {
-        return StrUtil.format(tdSelectFuncEnum.getFunc(), columnName, aliasName);
+        return formatTemplate(tdSelectFuncEnum.getFunc(), columnName, aliasName);
+    }
+
+    private static String formatTemplate(String template, Object... args) {
+        if (!StringUtils.hasLength(template) || args == null || args.length == 0) {
+            return template;
+        }
+        String result = template;
+        for (Object arg : args) {
+            String replacement = arg == null ? "null" : arg.toString();
+            result = result.replaceFirst("\\{}", replacement);
+        }
+        return result;
     }
 }

@@ -1,14 +1,14 @@
 package com.zephyrcicd.tdengineorm.wrapper;
 
-import cn.hutool.core.annotation.AnnotationUtil;
-import cn.hutool.core.util.StrUtil;
 import com.zephyrcicd.tdengineorm.annotation.TdTable;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.constant.TdSqlConstant;
 import com.zephyrcicd.tdengineorm.enums.TdWrapperTypeEnum;
+import com.zephyrcicd.tdengineorm.util.FieldUtil;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,9 +49,13 @@ public abstract class AbstractTdWrapper<T> {
     }
 
     protected void initTbName() {
-        String name = AnnotationUtil.getAnnotationValue(entityClass, TdTable.class, "value");
-        if (StrUtil.isBlank(name)) {
-            name = StrUtil.toUnderlineCase(entityClass.getSimpleName());
+        String name = null;
+        TdTable annotation = entityClass.getAnnotation(TdTable.class);
+        if (annotation != null && StringUtils.hasText(annotation.value())) {
+            name = annotation.value();
+        }
+        if (!StringUtils.hasText(name)) {
+            name = FieldUtil.toUnderlineCase(entityClass.getSimpleName());
         }
         tbName = name;
     }

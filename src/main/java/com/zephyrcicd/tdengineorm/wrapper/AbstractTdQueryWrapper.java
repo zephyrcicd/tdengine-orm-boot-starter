@@ -1,8 +1,5 @@
 package com.zephyrcicd.tdengineorm.wrapper;
 
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.StrUtil;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.enums.TdWindFuncTypeEnum;
 import com.zephyrcicd.tdengineorm.enums.TdWrapperTypeEnum;
@@ -11,6 +8,8 @@ import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.func.GetterFunction;
 import com.zephyrcicd.tdengineorm.util.AssertUtil;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
+import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,19 +65,19 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
                     .append(SqlConstant.BLANK);
         });
 
-        if (StrUtil.isNotBlank(where)) {
+        if (where.length() > 0) {
             sql.append(SqlConstant.WHERE).append(where);
         }
-        if (StrUtil.isNotBlank(windowFunc)) {
+        if (StringUtils.hasText(windowFunc)) {
             sql.append(windowFunc);
         }
-        if (StrUtil.isNotBlank(groupBy)) {
+        if (StringUtils.hasText(groupBy)) {
             sql.append(groupBy);
         }
-        if (StrUtil.isNotBlank(orderBy)) {
+        if (orderBy.length() > 0) {
             sql.append(orderBy);
         }
-        if (StrUtil.isNotBlank(limit)) {
+        if (StringUtils.hasText(limit)) {
             sql.append(limit);
         }
 
@@ -96,13 +95,13 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
 
     private void buildSelect(StringBuilder sql) {
         sql.append(SqlConstant.SELECT);
-        if (ArrayUtil.isEmpty(selectColumnNames) && selectCalcWrapper == null) {
+        if ((selectColumnNames == null || selectColumnNames.length == 0) && selectCalcWrapper == null) {
             // 默认查询所有字段
             sql.append(SqlConstant.ALL);
             return;
         }
 
-        if (ArrayUtil.isNotEmpty(selectColumnNames)) {
+        if (selectColumnNames != null && selectColumnNames.length > 0) {
             for (int i = 1; i <= selectColumnNames.length; i++) {
                 if (i > 1) {
                     sql.append(SqlConstant.COMMA);
@@ -143,7 +142,7 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
 
 
     protected void addColumnName(String columnName) {
-        if (ArrayUtil.isEmpty(selectColumnNames)) {
+        if (selectColumnNames == null || selectColumnNames.length == 0) {
             selectColumnNames = new String[]{columnName};
             return;
         }
@@ -153,12 +152,17 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
     }
 
     protected void addColumnNames(String[] columnNames) {
-        if (ArrayUtil.isEmpty(selectColumnNames)) {
-            selectColumnNames = columnNames;
+        if (columnNames == null || columnNames.length == 0) {
             return;
         }
-
-        selectColumnNames = ArrayUtil.addAll(selectColumnNames, columnNames);
+        if (selectColumnNames == null || selectColumnNames.length == 0) {
+            selectColumnNames = columnNames.clone();
+            return;
+        }
+        String[] merged = new String[selectColumnNames.length + columnNames.length];
+        System.arraycopy(selectColumnNames, 0, merged, 0, selectColumnNames.length);
+        System.arraycopy(columnNames, 0, merged, selectColumnNames.length, columnNames.length);
+        selectColumnNames = merged;
     }
 
     protected void addWhereParam(Object value, String columnName, String paramName, String symbol) {
@@ -176,7 +180,7 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
     }
 
     private void checkHasWhere() {
-        if (StrUtil.isNotBlank(where)) {
+        if (where.length() > 0) {
             where.append(SqlConstant.AND);
         }
     }
@@ -205,7 +209,7 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
 
 
     protected void doNotIn(String column, Object... valueArray) {
-        if (StrUtil.isNotBlank(where)) {
+        if (where.length() > 0) {
             where.append(SqlConstant.AND);
         }
 
@@ -226,7 +230,7 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
 
 
     protected void doNotNull(String columnName) {
-        if (StrUtil.isNotBlank(where)) {
+        if (where.length() > 0) {
             where.append(SqlConstant.AND);
         }
         where
@@ -235,7 +239,7 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
     }
 
     protected void doIsNull(String columnName) {
-        if (StrUtil.isNotBlank(where)) {
+        if (where.length() > 0) {
             where.append(SqlConstant.AND);
         }
         where
