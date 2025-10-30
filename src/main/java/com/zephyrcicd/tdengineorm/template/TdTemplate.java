@@ -547,7 +547,7 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList) {
-        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
+        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy());
     }
 
     /**

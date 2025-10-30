@@ -30,6 +30,17 @@ import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
  */
 @Slf4j
 public class TdSqlUtil {
+    public static Set<Pair<String, String>> getAllTagFieldsPair(Object obj) {
+        Class<?> entityClass = obj.getClass();
+        List<Field> fields = ClassUtil.getAllFields(entityClass, field -> field.isAnnotationPresent(TdTag.class));
+        return fields.stream()
+                .map(field -> {
+                    Object fieldValue = getFieldValue(obj, field);
+                    String valueStr = fieldValue == null ? "unknown" : fieldValue.toString();
+                    return Pair.of(field.getName(), valueStr);
+                })
+                .collect(Collectors.toSet());
+    }
 
     public static String getTbName(Class<?> entityClass) {
         String tbNameByAnno = getTbNameByAnno(entityClass);
@@ -458,7 +469,7 @@ public class TdSqlUtil {
                 default:
                     defaultLength = 255;
             }
-            
+
             int length = (tdField == null || tdField.length() <= 0) ? defaultLength : tdField.length();
             return type.getFiledType() + SqlConstant.LEFT_BRACKET + length + SqlConstant.RIGHT_BRACKET;
         }
@@ -471,7 +482,7 @@ public class TdSqlUtil {
         if (null == tdFieldTypeEnum) {
             // 类型匹配不到时，记录警告日志并默认使用NCHAR类型
             // 大部分情况下使用字符串类型都能正常插入数据
-            log.warn("Field [{}] with type [{}] cannot match TDengine field type, using NCHAR as default", 
+            log.warn("Field [{}] with type [{}] cannot match TDengine field type, using NCHAR as default",
                     field.getName(), fieldType.getName());
             return TdFieldTypeEnum.NCHAR;
         }
