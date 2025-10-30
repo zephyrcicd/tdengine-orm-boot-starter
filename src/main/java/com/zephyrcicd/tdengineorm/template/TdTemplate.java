@@ -9,13 +9,9 @@ import com.zephyrcicd.tdengineorm.enums.TdLogLevelEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
 import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.mapper.TdColumnRowMapper;
-import com.zephyrcicd.tdengineorm.strategy.DefaultEntityTableNameStrategy;
-import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
-import com.zephyrcicd.tdengineorm.strategy.MapTableNameStrategy;
-import com.zephyrcicd.tdengineorm.util.AssertUtil;
-import com.zephyrcicd.tdengineorm.util.ClassUtil;
-import com.zephyrcicd.tdengineorm.util.JsonUtil;
-import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
+import com.zephyrcicd.tdengineorm.strategy.DefaultDynamicNameStrategy;
+import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
+import com.zephyrcicd.tdengineorm.util.*;
 import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdWrappers;
@@ -30,6 +26,8 @@ import org.springframework.util.CollectionUtils;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
 
 
 /**
@@ -187,14 +185,14 @@ public class TdTemplate {
      *
      * <p><b>适用场景：</b>TDengine 子表插入（根据设备ID等生成子表名）、动态分表场景</p>
      *
-     * @param entityTableNameStrategy 实体类表名称获取策略
+     * @param dynamicNameStrategy 实体类表名称获取策略
      * @param object                  实体对象
      * @param <T>                     实体类型
      * @return 影响的行数
      * @throws TdOrmException 如果表名为空或实体类没有非TAG字段
      */
-    public <T> int insert(EntityTableNameStrategy<T> entityTableNameStrategy, T object) {
-        String tbName = entityTableNameStrategy.getTableName(object);
+    public <T> int insert(DynamicNameStrategy<T> dynamicNameStrategy, T object) {
+        String tbName = dynamicNameStrategy.getTableName(object);
         AssertUtil.notBlank(tbName, new TdOrmException(TdOrmExceptionCode.TABLE_NAME_BLANK));
 
         // 获取非TAG字段
@@ -210,7 +208,7 @@ public class TdTemplate {
     private <T> int doInsertEntity(T object, String tbName, List<Field> noTagFieldList) {
         Map<String, Object> paramsMap = new HashMap<>(noTagFieldList.size());
 
-        String sql = SqlConstant.INSERT_INTO + tbName + TdSqlUtil.joinColumnNamesAndValuesSql(object, noTagFieldList, paramsMap);
+        String sql = SqlConstant.INSERT_INTO +  addSingleQuotes(tbName) + TdSqlUtil.joinColumnNamesAndValuesSql(object, noTagFieldList, paramsMap);
         return updateWithTdLog(sql, paramsMap);
     }
 
@@ -229,13 +227,13 @@ public class TdTemplate {
      * @param dataMap              数据 Map（key=列名, value=列值）
      * @return 影响的行数
      */
-    public int insert(MapTableNameStrategy mapTableNameStrategy, Map<String, Object> dataMap) {
+    public int insert(DynamicNameStrategy<Map<String, Object>> mapTableNameStrategy, Map<String, Object> dataMap) {
         return doInsertMap(mapTableNameStrategy.getTableName(dataMap), dataMap);
     }
 
     private int doInsertMap(String tableName, Map<String, Object> dataMap) {
         StringBuilder sql = new StringBuilder(SqlConstant.INSERT_INTO)
-                .append(tableName)
+                .append(addSingleQuotes(tableName))
                 .append(SqlConstant.LEFT_BRACKET);
 
         StringBuilder valueSql = new StringBuilder(") VALUES (");
@@ -265,7 +263,7 @@ public class TdTemplate {
      * @param <T>                   实体类型
      * @return 影响的行数
      */
-    public <T> int insertUsing(T object, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
+    public <T> int insertUsing(T object, DynamicNameStrategy<T> dynamicTbNameStrategy) {
         // 获取SQL&参数值
         Pair<String, Map<String, Object>> finalSqlAndParamsMapPair = TdSqlUtil.getFinalInsertUsingSql(object,
                 ClassUtil.getAllFields(object.getClass()), dynamicTbNameStrategy);
@@ -294,7 +292,7 @@ public class TdTemplate {
      * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
+    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
         return batchInsert(clazz, entityList, DEFAULT_BATCH_SIZE, dynamicTbNameStrategy);
     }
 
@@ -323,7 +321,7 @@ public class TdTemplate {
      * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, int pageSize, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
+    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
         if (pageSize <= 0) {
             throw new IllegalArgumentException("Partition size must be greater than zero");
         }
@@ -451,7 +449,7 @@ public class TdTemplate {
      * @param strategy Map表名称策略
      * @return 每批插入影响的行数数组
      */
-    public int[] batchInsert(List<Map<String, Object>> dataList, MapTableNameStrategy strategy) {
+    public int[] batchInsert(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String, Object>> strategy) {
         return batchInsert(dataList, strategy, DEFAULT_BATCH_SIZE);
     }
 
@@ -477,7 +475,8 @@ public class TdTemplate {
      * @param pageSize 每批次大小
      * @return 每批插入影响的行数数组
      */
-    public int[] batchInsert(List<Map<String, Object>> dataList, MapTableNameStrategy strategy, int pageSize) {
+    public int[] batchInsert(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String,Object>> strategy,
+                             int pageSize) {
         if (pageSize <= 0) {
             throw new IllegalArgumentException("Partition size must be greater than zero");
         }
@@ -548,7 +547,7 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList) {
-        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultEntityTableNameStrategy<>());
+        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
     }
 
     /**
@@ -573,7 +572,7 @@ public class TdTemplate {
      * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
+    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
         return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, dynamicTbNameStrategy);
     }
 
@@ -601,7 +600,7 @@ public class TdTemplate {
      * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, EntityTableNameStrategy<T> dynamicTbNameStrategy) {
+    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
 
         // 目前仅支持同子表的数据批量插入, 所以随意取一个对象的tag的值都是一样的
         if (pageSize <= 0) {
@@ -709,7 +708,7 @@ public class TdTemplate {
      */
     private String buildInsertSqlPrefix(String tableName, Set<String> columnNames) {
         StringBuilder sql = new StringBuilder(SqlConstant.INSERT_INTO)
-                .append(tableName)
+                .append(addSingleQuotes(tableName))
                 .append(SqlConstant.LEFT_BRACKET);
 
         for (String columnName : columnNames) {

@@ -10,7 +10,7 @@ import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
  *
  * @author Zephyr
  */
-public class DefaultEntityTableNameStrategy<T> implements EntityTableNameStrategy<T> {
+public class DefaultDynamicNameStrategy<T> implements DynamicNameStrategy<T> {
 
     @Override
     public String getTableName(T entity) {
