@@ -13,7 +13,7 @@ package com.zephyrcicd.tdengineorm.strategy;
  * @author Zephyr
  */
 @FunctionalInterface
-public interface EntityTableNameStrategy<T> {
+public interface DynamicNameStrategy<T> {
 
     /**
      * 动态表名生成

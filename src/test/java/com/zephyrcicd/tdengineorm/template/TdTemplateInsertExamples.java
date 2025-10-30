@@ -1,8 +1,7 @@
 package com.zephyrcicd.tdengineorm.template;
 
 import com.zephyrcicd.tdengineorm.entity.SensorData;
-import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
-import com.zephyrcicd.tdengineorm.strategy.MapTableNameStrategy;
+import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -111,7 +110,7 @@ public class TdTemplateInsertExamples {
                 .build();
 
         // 定义表名策略：根据设备ID生成子表名
-        EntityTableNameStrategy<SensorData> strategy = entity ->
+        DynamicNameStrategy<SensorData> strategy = entity ->
                 "sensor_" + entity.getDeviceId();
 
         // 使用策略插入，实际会插入到 sensor_device001 表
@@ -131,7 +130,7 @@ public class TdTemplateInsertExamples {
         dataMap.put("ts", System.currentTimeMillis());
 
         // 定义表名策略：根据Map中的数据生成表名
-        MapTableNameStrategy strategy = map -> {
+        DynamicNameStrategy<Map<String, Object>> strategy = map -> {
             // 可以根据Map中的数据动态决定表名
             return "sensor_device001";
         };
@@ -157,7 +156,7 @@ public class TdTemplateInsertExamples {
                 .build();
 
         // 定义子表名策略
-        EntityTableNameStrategy<SensorData> strategy = entity ->
+        DynamicNameStrategy<SensorData> strategy = entity ->
                 "sensor_" + entity.getDeviceId();
 
         // 使用USING语法插入，如果子表不存在会自动创建
@@ -199,7 +198,7 @@ public class TdTemplateInsertExamples {
         }
 
         // 定义表名策略：根据设备ID生成子表名
-        EntityTableNameStrategy<SensorData> strategy = entity ->
+        DynamicNameStrategy<SensorData> strategy = entity ->
                 "sensor_" + entity.getDeviceId();
 
         // 批量插入，会自动按表名分组
@@ -231,7 +230,7 @@ public class TdTemplateInsertExamples {
         }
 
         // 定义表名策略
-        EntityTableNameStrategy<SensorData> strategy = entity ->
+        DynamicNameStrategy<SensorData> strategy = entity ->
                 "sensor_" + entity.getDeviceId();
 
         // 批量插入，每500条一批
@@ -286,7 +285,7 @@ public class TdTemplateInsertExamples {
         }
 
         // 定义子表名策略
-        EntityTableNameStrategy<SensorData> strategy = entity ->
+        DynamicNameStrategy<SensorData> strategy = entity ->
                 "sensor_" + entity.getDeviceId();
 
         // 批量插入，使用自定义表名策略
@@ -314,7 +313,7 @@ public class TdTemplateInsertExamples {
         }
 
         // 定义子表名策略
-        EntityTableNameStrategy<SensorData> strategy = entity ->
+        DynamicNameStrategy<SensorData> strategy = entity ->
                 "sensor_" + entity.getDeviceId();
 
         // 批量插入，每500条一批
@@ -340,7 +339,7 @@ public class TdTemplateInsertExamples {
                 .build();
 
         // 定义基于时间的分表策略：按月分表
-        EntityTableNameStrategy<SensorData> strategy = entity -> {
+        DynamicNameStrategy<SensorData> strategy = entity -> {
             // 将Long类型的时间戳转换为LocalDateTime
             LocalDateTime dateTime = Instant.ofEpochMilli(entity.getTs())
                     .atZone(ZoneId.systemDefault())
@@ -456,7 +455,7 @@ public class TdTemplateInsertExamples {
         }
 
         // 定义表名策略：根据device_id生成表名
-        MapTableNameStrategy strategy = map ->
+        DynamicNameStrategy<Map<String,Object>> strategy = map ->
                 "sensor_" + map.get("device_id");
 
         // 批量插入，会自动按表名分组

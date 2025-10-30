@@ -11,7 +11,7 @@ import com.zephyrcicd.tdengineorm.enums.TdSelectFuncEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
 import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.func.GetterFunction;
-import com.zephyrcicd.tdengineorm.strategy.EntityTableNameStrategy;
+import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.util.Pair;
 import org.springframework.util.CollectionUtils;
@@ -23,11 +23,24 @@ import java.util.*;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
+
 /**
  * @author Zephyr
  */
 @Slf4j
 public class TdSqlUtil {
+    public static Set<Pair<String, String>> getAllTagFieldsPair(Object obj) {
+        Class<?> entityClass = obj.getClass();
+        List<Field> fields = ClassUtil.getAllFields(entityClass, field -> field.isAnnotationPresent(TdTag.class));
+        return fields.stream()
+                .map(field -> {
+                    Object fieldValue = getFieldValue(obj, field);
+                    String valueStr = fieldValue == null ? "unknown" : fieldValue.toString();
+                    return Pair.of(field.getName(), valueStr);
+                })
+                .collect(Collectors.toSet());
+    }
 
     public static String getTbName(Class<?> entityClass) {
         String tbNameByAnno = getTbNameByAnno(entityClass);
@@ -88,7 +101,7 @@ public class TdSqlUtil {
      */
     public static StringBuilder getInsertIntoSqlPrefix(String tbName, List<Field> fields) {
         return new StringBuilder(SqlConstant.INSERT_INTO)
-                .append(tbName)
+                .append( addSingleQuotes(tbName) )
                 .append(fields.stream().map(TdSqlUtil::getColumnName).collect(getColumnWithBracketCollector()))
                 .append(SqlConstant.VALUES);
     }
@@ -212,8 +225,9 @@ public class TdSqlUtil {
                 : getColumnNameSqlAndParamNameSqlPair(fields);
 
         // 拼接INSERT INTO语句的初始化 SQL
+        String tabName = StringUtils.hasText(defaultTbName) ? defaultTbName : getTbName(entityClass);
         return new StringBuilder(SqlConstant.INSERT_INTO)
-                .append(StringUtils.hasText(defaultTbName) ? defaultTbName : getTbName(entityClass))
+                .append(addSingleQuotes(tabName))
                 .append(columnNameSqlAndParamNameSqlPair.getFirst())
                 .append(SqlConstant.VALUES)
                 .append(columnNameSqlAndParamNameSqlPair.getSecond());
@@ -231,7 +245,7 @@ public class TdSqlUtil {
 
         // 拼接INSERT INTO语句的初始化 SQL
         return new StringBuilder(SqlConstant.INSERT_INTO)
-                .append(tbName)
+                .append(addSingleQuotes(tbName))
                 .append(separateByCommas(columNames, true))
                 .append(SqlConstant.VALUES)
                 .append(separateByCommas(paramsNames, true));
@@ -242,7 +256,7 @@ public class TdSqlUtil {
 
         // 拼接INSERT INTO语句的初始化 SQL
         return new StringBuilder(SqlConstant.INSERT_INTO)
-                .append(tbName)
+                .append(addSingleQuotes(tbName))
                 .append(columnNameSqlAndParamNameSqlPair.getFirst())
                 .append(SqlConstant.VALUES)
                 .append(columnNameSqlAndParamNameSqlPair.getSecond());
@@ -368,7 +382,7 @@ public class TdSqlUtil {
                 .collect(TdSqlUtil.getColumnWithBracketCollector());
     }
 
-    public static <T> String getInsertUsingSqlPrefix(T object, List<Field> fieldList, EntityTableNameStrategy<T> dynamicTbNameStrategy, Map<String, Object> map) {
+    public static <T> String getInsertUsingSqlPrefix(T object, List<Field> fieldList, DynamicNameStrategy<T> dynamicTbNameStrategy, Map<String, Object> map) {
         // 根据是否为TAG字段做分组
         Pair<List<Field>, List<Field>> fieldsPair = differentiateByTag(fieldList);
         // 获取TAGS字段名称&对应的值
@@ -376,13 +390,14 @@ public class TdSqlUtil {
         // 获取普通字段的名称
         String commFieldSql = TdSqlUtil.joinColumnNamesWithBracket(fieldsPair.getSecond());
         // 根据策略生成表名(传入实体对象以支持基于数据的命名)
-        return SqlConstant.INSERT_INTO + dynamicTbNameStrategy.getTableName(object)
-                + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql + SqlConstant.VALUES;
+        String tableName = dynamicTbNameStrategy.getTableName(object);
+        return SqlConstant.INSERT_INTO + addSingleQuotes(tableName)
+               + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql + SqlConstant.VALUES;
     }
 
 
     public static <T> Pair<String, Map<String, Object>> getFinalInsertUsingSql(T object, List<Field> fieldList,
-                                                                               EntityTableNameStrategy<T> dynamicTbNameStrategy) {
+                                                                               DynamicNameStrategy<T> dynamicTbNameStrategy) {
         Map<String, Object> paramsMap = new HashMap<>(fieldList.size());
 
         // 根据是否为TAG字段做分组
@@ -397,7 +412,7 @@ public class TdSqlUtil {
         String childTbName = dynamicTbNameStrategy.getTableName(object);
 
         // 拼接最终SQL
-        String finalSql = SqlConstant.INSERT_INTO + childTbName + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql;
+        String finalSql = SqlConstant.INSERT_INTO + addSingleQuotes(childTbName) + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql;
 
         return Pair.of(finalSql, paramsMap);
     }
@@ -437,11 +452,25 @@ public class TdSqlUtil {
         TdColumn tdField = field.getAnnotation(TdColumn.class);
         TdFieldTypeEnum type = null == tdField ? getColumnTypeByField(field) : tdField.type();
         if (type.isNeedLengthLimit()) {
-            if (tdField == null || tdField.length() <= 0) {
-                log.warn("Field [{}] has no length limit.", field.getName());
-                throw new TdOrmException(TdOrmExceptionCode.FIELD_NO_LENGTH);
+            // 对于需要长度限制的字段类型，根据字段类型设置合理的默认长度，减少用户需要手动指定长度的心智负担
+            int defaultLength;
+            switch (type) {
+                // 对于String类型（NCHAR等），默认长度为255
+                case NCHAR:
+                    defaultLength = 255;
+                    break;
+                // 对于二进制类型（BINARY, VARBINARY, VARCHAR等），默认长度为1024字节
+                case BINARY:
+                case VARBINARY:
+                case VARCHAR:
+                    defaultLength = 1024;
+                    break;
+                // 对于其他需要长度的类型，默认长度为255
+                default:
+                    defaultLength = 255;
             }
-            int length = tdField.length();
+
+            int length = (tdField == null || tdField.length() <= 0) ? defaultLength : tdField.length();
             return type.getFiledType() + SqlConstant.LEFT_BRACKET + length + SqlConstant.RIGHT_BRACKET;
         }
         return type.getFiledType();
@@ -451,7 +480,11 @@ public class TdSqlUtil {
         Class<?> fieldType = field.getType();
         TdFieldTypeEnum tdFieldTypeEnum = TdFieldTypeEnum.matchByFieldType(fieldType);
         if (null == tdFieldTypeEnum) {
-            throw new TdOrmException(TdOrmExceptionCode.CANT_NOT_MATCH_FIELD_TYPE);
+            // 类型匹配不到时，记录警告日志并默认使用NCHAR类型
+            // 大部分情况下使用字符串类型都能正常插入数据
+            log.warn("Field [{}] with type [{}] cannot match TDengine field type, using NCHAR as default",
+                    field.getName(), fieldType.getName());
+            return TdFieldTypeEnum.NCHAR;
         }
 
         return tdFieldTypeEnum;
