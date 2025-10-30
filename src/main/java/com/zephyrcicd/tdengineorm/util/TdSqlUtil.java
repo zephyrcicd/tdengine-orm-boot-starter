@@ -441,11 +441,25 @@ public class TdSqlUtil {
         TdColumn tdField = field.getAnnotation(TdColumn.class);
         TdFieldTypeEnum type = null == tdField ? getColumnTypeByField(field) : tdField.type();
         if (type.isNeedLengthLimit()) {
-            if (tdField == null || tdField.length() <= 0) {
-                log.warn("Field [{}] has no length limit.", field.getName());
-                throw new TdOrmException(TdOrmExceptionCode.FIELD_NO_LENGTH);
+            // 对于需要长度限制的字段类型，根据字段类型设置合理的默认长度，减少用户需要手动指定长度的心智负担
+            int defaultLength;
+            switch (type) {
+                // 对于String类型（NCHAR等），默认长度为255
+                case NCHAR:
+                    defaultLength = 255;
+                    break;
+                // 对于二进制类型（BINARY, VARBINARY, VARCHAR等），默认长度为1024字节
+                case BINARY:
+                case VARBINARY:
+                case VARCHAR:
+                    defaultLength = 1024;
+                    break;
+                // 对于其他需要长度的类型，默认长度为255
+                default:
+                    defaultLength = 255;
             }
-            int length = tdField.length();
+            
+            int length = (tdField == null || tdField.length() <= 0) ? defaultLength : tdField.length();
             return type.getFiledType() + SqlConstant.LEFT_BRACKET + length + SqlConstant.RIGHT_BRACKET;
         }
         return type.getFiledType();
@@ -455,7 +469,11 @@ public class TdSqlUtil {
         Class<?> fieldType = field.getType();
         TdFieldTypeEnum tdFieldTypeEnum = TdFieldTypeEnum.matchByFieldType(fieldType);
         if (null == tdFieldTypeEnum) {
-            throw new TdOrmException(TdOrmExceptionCode.CANT_NOT_MATCH_FIELD_TYPE);
+            // 类型匹配不到时，记录警告日志并默认使用NCHAR类型
+            // 大部分情况下使用字符串类型都能正常插入数据
+            log.warn("Field [{}] with type [{}] cannot match TDengine field type, using NCHAR as default", 
+                    field.getName(), fieldType.getName());
+            return TdFieldTypeEnum.NCHAR;
         }
 
         return tdFieldTypeEnum;
