@@ -1,17 +1,17 @@
-## Introduction
+## 介绍
 
-[English](README.md) | [中文](README_CN.md)
+[English](README_EN.md) | [中文](README.md)
 
-> `tdengine-orm-boot-starter` is a semi-ORM framework based on SpringBootJdbc for convenient operation of TDengine data, inspired by MyBatisPlus design
+> `tdengine-orm-boot-starter` 是一个基于 SpringBootJdbc 的半 ORM 框架，用于便捷操作 TDengine 数据，其设计参考了 MyBatisPlus
 
-### Tech Stack
+### 技术栈
 
-- spring-boot-starter 2.X Mainly uses SpringBoot's auto-configuration feature. After SpringBoot 2.7, the auto-configuration method has changed, but the old way remains compatible
-- spring-boot-starter-jdbc 2.x Mainly uses the JdbcTemplate object
+- spring-boot-starter 2.X：主要使用 SpringBoot 的自动装配功能，虽然 SpringBoot 2.7 之后自动装配方式有所修改，但旧的方式仍然兼容
+- spring-boot-starter-jdbc 2.x：主要使用 JdbcTemplate 对象
 
-## Quick Start
+## 快速开始
 
-1. Add JitPack repository and dependency to your project's `pom.xml`:
+1. 在你的项目 `pom.xml` 中添加 JitPack 仓库和依赖:
     ```xml
     <repositories>
         <repository>
@@ -23,29 +23,29 @@
     <dependency>
         <groupId>com.github.zephyrcicd</groupId>
         <artifactId>tdengine-orm-boot-starter</artifactId>
-        <version>main-SNAPSHOT</version> <!-- or use a specific tag like v1.0.0 -->
+        <version>main-SNAPSHOT</version> <!-- 或使用特定tag如 v1.0.0 -->
     </dependency>
     ```
-2. Configure database connection in `application.yml`
-3. Create entity classes with `@TdTable` and `@TdTag` annotations
-4. Inject `TdTemplate` in your service class and start using it
+2. 在 `application.yml` 中配置数据库连接
+3. 使用 `@TdTable` 和 `@TdTag` 注解创建实体类
+4. 在服务类中注入 `TdTemplate` 开始使用
 
-## Detailed Usage Guide
+## 详细使用指南
 
-### Supported Connection Pools
+### 支持的连接池
 
-The starter supports the following connection pools, listed in order of priority:
+该 starter 支持以下连接池，按优先级排序：
 
-1. **Druid** - Highest priority
-2. **HikariCP** - Second priority
-3. **Apache DBCP2** - Third priority
-4. **Spring DriverManagerDataSource** - Fallback option
+1. **Druid** - 优先级最高
+2. **HikariCP** - 优先级次之
+3. **Apache DBCP2** - 优先级再次之
+4. **Spring DriverManagerDataSource** - 兜底方案
 
-### Usage Steps
+### 使用方法
 
-#### 1. Add Dependencies
+#### 1. 添加依赖
 
-Add JitPack repository and TDengine ORM Starter dependency to your project's `pom.xml`:
+在你的项目 `pom.xml` 中添加 JitPack 仓库和 TDengine ORM Starter 依赖：
 
 ```xml
 <repositories>
@@ -58,21 +58,21 @@ Add JitPack repository and TDengine ORM Starter dependency to your project's `po
 <dependency>
     <groupId>com.github.zephyrcicd</groupId>
     <artifactId>tdengine-orm-boot-starter</artifactId>
-    <version>main-SNAPSHOT</version> <!-- Latest from main branch -->
-    <!-- or use a specific tag: <version>v1.0.0</version> -->
+    <version>main-SNAPSHOT</version> <!-- main分支最新代码 -->
+    <!-- 或使用特定tag: <version>v1.0.0</version> -->
 </dependency>
 ```
 
-**Version Selection**:
-- `main-SNAPSHOT`: Latest code from main branch (always up-to-date)
-- `v1.0.0` or other tags: Stable release versions (recommended for production)
-- Commit hash: Specific commit version
+**版本号选择**:
+- `main-SNAPSHOT`: main分支最新代码(始终保持最新)
+- `v1.0.0` 或其他tag: 稳定发布版本(推荐生产环境使用)
+- commit hash: 特定提交版本
 
-#### 2. Add Connection Pool Dependency (Optional)
+#### 2. 添加连接池依赖（可选）
 
-Choose a connection pool based on your needs:
+根据需要选择一个连接池：
 
-##### Using Druid Connection Pool
+##### 使用 Druid 连接池
 ```xml
 <dependency>
     <groupId>com.alibaba</groupId>
@@ -81,7 +81,7 @@ Choose a connection pool based on your needs:
 </dependency>
 ```
 
-##### Using HikariCP Connection Pool
+##### 使用 HikariCP 连接池
 ```xml
 <dependency>
     <groupId>com.zaxxer</groupId>
@@ -90,7 +90,7 @@ Choose a connection pool based on your needs:
 </dependency>
 ```
 
-##### Using Apache DBCP2 Connection Pool
+##### 使用 Apache DBCP2 连接池
 ```xml
 <dependency>
     <groupId>org.apache.commons</groupId>
@@ -99,24 +99,24 @@ Choose a connection pool based on your needs:
 </dependency>
 ```
 
-If no connection pool dependency is added, the starter will use Spring's DriverManagerDataSource as a fallback.
+如果不添加任何连接池依赖，starter 将使用 Spring 的 DriverManagerDataSource 作为兜底方案。
 
-#### 3. Configure Database Connection
+#### 3. 配置数据库连接
 
-Configure TDengine connection information in `application.yml` or `application.properties`:
+在 `application.yml` 或 `application.properties` 中配置 TDengine 连接信息：
 
-##### application.yml Example
+##### application.yml 示例
 ```yaml
 td-orm:
-  enabled: true  # Optional, defaults to true
+  enabled: true  # 可选，默认为 true
   url: jdbc:TAOS://localhost:6030/test
   username: root
   password: taosdata
   driver-class-name: com.taosdata.jdbc.TSDBDriver
-  log-level: ERROR  # Log level: ERROR, WARN, INFO, DEBUG
+  log-level: ERROR  # 日志级别：ERROR, WARN, INFO, DEBUG
 ```
 
-##### application.properties Example
+##### application.properties 示例
 ```properties
 td-orm.enabled=true
 td-orm.url=jdbc:TAOS://localhost:6030/test
@@ -126,9 +126,9 @@ td-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
 td-orm.log-level=ERROR
 ```
 
-#### 4. Using TdTemplate
+#### 4. 使用 TdTemplate
 
-Inject and use `TdTemplate` in your service class:
+在你的服务类中注入和使用 `TdTemplate`：
 
 ```java
 @Service
@@ -138,12 +138,12 @@ public class IoTDataService {
     private TdTemplate tdTemplate;
 
     public void saveData(SensorData data) {
-        // Insert single record
+        // 插入单条数据
         tdTemplate.insert(data);
     }
 
     public List<SensorData> findData() {
-        // Query data
+        // 查询数据
         TdQueryWrapper<SensorData> wrapper = TdWrappers.queryWrapper(SensorData.class)
                 .selectAll()
                 .orderByDesc("ts")
@@ -153,7 +153,69 @@ public class IoTDataService {
 }
 ```
 
-#### 5. Entity Class Example
+#### 5. 查看更多使用示例
+
+项目中包含了完整的使用示例代码，展示了各种插入场景的用法：
+
+**示例代码位置**: `src/test/java/com/zephyrcicd/tdengineorm/template/TdTemplateInsertExamples.java`
+
+**包含的示例**:
+- 示例0: 使用TdTemplate创建超级表
+- 示例1-2: 基础插入操作（普通表、超级表）
+- 示例3-4: 动态表名策略插入（基于实体、基于Map）
+- 示例5: USING语法插入（自动创建子表）
+- 示例6-7: 批量插入到不同子表（默认/自定义批次大小）
+- 示例8-10: 批量USING插入（默认/自定义策略/自定义批次）
+- 示例11-12: 复杂场景（时间分表、Lambda表达式）
+- 示例13-14: 批量插入Map数据（指定表名、策略表名）
+
+**重要说明**:
+- 这些是纯示例代码，不是可运行的测试类
+- 请在您的Spring Boot项目中参考这些示例
+- 实际使用时，通过`@Autowired`注入`TdTemplate`即可
+
+**在您的项目中使用示例**:
+
+```java
+@Service
+public class IoTDataService {
+
+    @Autowired
+    private TdTemplate tdTemplate;
+
+    // 参考示例代码中的方法，直接使用 tdTemplate
+    public void saveData(SensorData data) {
+        // 示例1: 基础插入
+        tdTemplate.insert(data);
+
+        // 示例3: 动态表名插入
+        DynamicNameStrategy<SensorData> strategy = entity ->
+            "sensor_" + entity.getDeviceId();
+        tdTemplate.insert(strategy, data);
+
+        // 示例5: USING语法插入（自动创建子表）
+        tdTemplate.insertUsing(data, strategy);
+    }
+
+    public void batchSaveData(List<SensorData> dataList) {
+        // 示例6: 批量插入到不同子表
+        DynamicNameStrategy<SensorData> strategy = entity ->
+            "sensor_" + entity.getDeviceId();
+        tdTemplate.batchInsert(SensorData.class, dataList, strategy);
+    }
+
+    public void batchSaveMapData(List<Map<String, Object>> dataList) {
+        // 示例13: 批量插入Map数据到指定表
+        tdTemplate.batchInsert("sensor_device001", dataList);
+
+        // 示例14: 批量插入Map数据到不同表（使用策略）
+        DynamicNameStrategy<Map<String, Object>> strategy = map -> "sensor_" + map.get("device_id");
+        tdTemplate.batchInsert(dataList, strategy);
+    }
+}
+```
+
+#### 6. 实体类定义示例
 
 ```java
 @TdTable("sensor_data")
@@ -169,36 +231,35 @@ public class SensorData {
     private Double humidity;
     private Timestamp ts;
 
-    // getter/setter methods...
+    // getter/setter 方法...
 }
 ```
 
-### Auto-Configuration Details
+### 自动配置详情
 
-#### Bean Creation
+#### Bean 创建
 
-The starter automatically creates the following beans:
+该 starter 会自动创建以下 Bean：
 
-- `tdengineDataSource` - TDengine data source
-- `tdengineJdbcTemplate` - TDengine-specific JdbcTemplate
-- `tdengineNamedParameterJdbcTemplate` - TDengine-specific NamedParameterJdbcTemplate
-- `jdbcTemplatePlus` - Enhanced JdbcTemplate wrapper
-- `tdTemplate` - TDengine template class for data access operations
+- `tdengineDataSource` - TDengine 数据源
+- `tdengineJdbcTemplate` - TDengine 专用的 JdbcTemplate
+- `tdengineNamedParameterJdbcTemplate` - TDengine 专用的 NamedParameterJdbcTemplate
+- `tdTemplate` - TDengine 数据访问模板类
 
-#### Connection Pool Selection Logic
+#### 连接池选择逻辑
 
-1. Check if Druid-related classes exist in the classpath, if yes, create Druid DataSource
-2. If no Druid, check if HikariCP exists, if yes, create HikariCP DataSource
-3. If no HikariCP, check if DBCP2 exists, if yes, create DBCP2 DataSource
-4. If none of the above, use Spring's DriverManagerDataSource
+1. 检测 classpath 中是否存在 Druid 相关类，如果存在则创建 Druid DataSource
+2. 如果没有 Druid，检测是否存在 HikariCP，如果存在则创建 HikariCP DataSource
+3. 如果没有 HikariCP，检测是否存在 DBCP2，如果存在则创建 DBCP2 DataSource
+4. 如果都没有，使用 Spring 的 DriverManagerDataSource
 
-#### Connection Pool Configurations
+#### 连接池配置
 
-#### Customizing Connection Pool
+#### 自定义连接池
 
-If you need to customize the connection pool settings, you can create your own DataSource bean. The starter will use your custom DataSource if it's named `tdengineDataSource`. Here's how to do it:
+如果你需要自定义连接池配置，可以创建自己的 DataSource bean。只要将 bean 命名为 `tdengineDataSource`，starter 就会使用你的自定义配置。以下是具体方法：
 
-##### Example: Custom HikariCP Configuration
+##### 示例：自定义 HikariCP 配置
 ```java
 @Configuration
 public class CustomDataSourceConfig {
@@ -211,7 +272,7 @@ public class CustomDataSourceConfig {
         config.setPassword("taosdata");
         config.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
         
-        // Customize pool settings
+        // 自定义连接池配置
         config.setMaximumPoolSize(30);
         config.setMinimumIdle(10);
         config.setConnectionTimeout(30000);
@@ -223,7 +284,7 @@ public class CustomDataSourceConfig {
 }
 ```
 
-##### Example: Custom Druid Configuration
+##### 示例：自定义 Druid 配置
 ```java
 @Configuration
 public class CustomDataSourceConfig {
@@ -236,7 +297,7 @@ public class CustomDataSourceConfig {
         dataSource.setPassword("taosdata");
         dataSource.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
         
-        // Customize pool settings
+        // 自定义连接池配置
         dataSource.setInitialSize(10);
         dataSource.setMaxActive(50);
         dataSource.setMinIdle(10);
@@ -249,38 +310,11 @@ public class CustomDataSourceConfig {
 }
 ```
 
-##### Example: Custom DBCP2 Configuration
-```java
-@Configuration
-public class CustomDataSourceConfig {
-    
-    @Bean("tdengineDataSource")
-    public DataSource tdengineDataSource() {
-        BasicDataSource dataSource = new BasicDataSource();
-        dataSource.setUrl("jdbc:TAOS://localhost:6030/test");
-        dataSource.setUsername("root");
-        dataSource.setPassword("taosdata");
-        dataSource.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
-        
-        // Customize pool settings
-        dataSource.setInitialSize(10);
-        dataSource.setMaxTotal(50);
-        dataSource.setMinIdle(10);
-        dataSource.setMaxIdle(20);
-        dataSource.setMaxWaitMillis(30000);
-        dataSource.setValidationQuery("SELECT 1");
-        dataSource.setTestWhileIdle(true);
-        
-        return dataSource;
-    }
-}
-```
+#### 默认配置
 
-#### Default Configurations
+如果不提供自定义的 DataSource bean，starter 将使用以下默认值：
 
-If you don't provide a custom DataSource bean, the starter will use the following default values:
-
-##### Druid Default Configuration
+##### Druid 默认配置
 - initialSize: 5
 - maxActive: 20
 - minIdle: 5
@@ -288,30 +322,30 @@ If you don't provide a custom DataSource bean, the starter will use the followin
 - validationQuery: "SELECT 1"
 - testWhileIdle: true
 
-##### HikariCP Default Configuration
+##### HikariCP 默认配置
 - maximumPoolSize: 20
 - minimumIdle: 5
 - connectionTimeout: 30000ms
 - idleTimeout: 600000ms
 - maxLifetime: 1800000ms
 
-##### DBCP2 Default Configuration
+##### DBCP2 默认配置
 - initialSize: 5
 - maxTotal: 20
 - minIdle: 5
 - maxIdle: 10
 - maxWaitMillis: 60000ms
 
-### Disabling Auto-Configuration
+### 禁用自动配置
 
-To disable TDengine ORM auto-configuration, set in your configuration file:
+如果需要禁用 TDengine ORM 的自动配置，可以在配置文件中设置：
 
 ```yaml
 td-orm:
   enabled: false
 ```
 
-Or exclude the auto-configuration in your startup class:
+或者在启动类上排除自动配置：
 
 ```java
 @SpringBootApplication(exclude = {TdOrmAutoConfiguration.class})
@@ -322,9 +356,26 @@ public class Application {
 }
 ```
 
-### Notes
+### 注意事项
 
-1. Ensure TDengine service is running and connection configuration is correct
-2. If multiple connection pools are introduced, one will be selected based on priority
-3. Advanced connection pool configurations can be overridden by custom DataSource Bean
-4. This starter is compatible with Spring Boot's auto-configuration and won't cause conflicts
+1. 确保 TDengine 服务正在运行并且连接配置正确
+2. 如果同时引入多个连接池，将按照优先级选择一个
+3. 连接池的高级配置可以通过自定义 DataSource Bean 来覆盖默认配置
+4. 该 starter 与 Spring Boot 的自动配置兼容，不会冲突
+
+### Maven 构建说明
+
+由于测试代码需要实际的 TDengine 数据库连接，在打包项目时建议跳过测试：
+
+```bash
+# 跳过测试打包
+mvn clean package -DskipTests
+
+# 或者跳过测试安装到本地仓库
+mvn clean install -DskipTests
+```
+
+如果需要运行测试，请确保：
+1. TDengine 服务正在运行
+2. 配置文件中的数据库连接信息正确
+3. 测试数据库已创建并有相应权限
