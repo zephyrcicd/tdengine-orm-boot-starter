@@ -14,6 +14,6 @@ public class TdSqlConstant {
     public static final String USING = " USING ";
     public static final String TAGS = " TAGS ";
     public static final String CREATE_STABLE = "CREATE STABLE ";
-    public static final String CREATE_STABLE_IF_NOT_EXIST = "CREATE STABLE IF NOT EXIST ";
+    public static final String CREATE_STABLE_IF_NOT_EXIST = "CREATE STABLE IF NOT EXISTS ";
     public static final String COMPOSITE_KEY = " COMPOSITE KEY ";
 }
