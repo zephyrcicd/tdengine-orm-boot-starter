@@ -2,6 +2,9 @@
 
 [English](README_EN.md) | [中文](README.md)
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.zephyrcicd/tdengine-orm-boot-starter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > `tdengine-orm-boot-starter` 是一个基于 SpringBootJdbc 的半 ORM 框架，用于便捷操作 TDengine 数据，其设计参考了 MyBatisPlus
 
 ### 技术栈
@@ -11,19 +14,12 @@
 
 ## 快速开始
 
-1. 在你的项目 `pom.xml` 中添加 JitPack 仓库和依赖:
+1. 在你的项目 `pom.xml` 中添加依赖:
     ```xml
-    <repositories>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
-
     <dependency>
-        <groupId>com.github.zephyrcicd</groupId>
+        <groupId>io.github.zephyrcicd</groupId>
         <artifactId>tdengine-orm-boot-starter</artifactId>
-        <version>main-SNAPSHOT</version> <!-- 或使用特定tag如 v1.0.0 -->
+        <version>1.1.0</version>
     </dependency>
     ```
 2. 在 `application.yml` 中配置数据库连接
@@ -45,7 +41,22 @@
 
 #### 1. 添加依赖
 
-在你的项目 `pom.xml` 中添加 JitPack 仓库和 TDengine ORM Starter 依赖：
+在你的项目 `pom.xml` 中添加 TDengine ORM Starter 依赖：
+
+```xml
+<dependency>
+    <groupId>io.github.zephyrcicd</groupId>
+    <artifactId>tdengine-orm-boot-starter</artifactId>
+    <version>1.1.0</version>
+</dependency>
+```
+
+**版本说明**:
+- `1.1.0`: 当前稳定版本(推荐生产环境使用)
+- 查看 [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) 获取最新版本
+
+**可选：从 JitPack 获取开发版本**
+如果需要使用最新的开发版本，可以从 JitPack 获取：
 
 ```xml
 <repositories>
@@ -58,15 +69,9 @@
 <dependency>
     <groupId>com.github.zephyrcicd</groupId>
     <artifactId>tdengine-orm-boot-starter</artifactId>
-    <version>main-SNAPSHOT</version> <!-- main分支最新代码 -->
-    <!-- 或使用特定tag: <version>v1.0.0</version> -->
+    <version>main-SNAPSHOT</version> <!-- 最新开发版本 -->
 </dependency>
 ```
-
-**版本号选择**:
-- `main-SNAPSHOT`: main分支最新代码(始终保持最新)
-- `v1.0.0` 或其他tag: 稳定发布版本(推荐生产环境使用)
-- commit hash: 特定提交版本
 
 #### 2. 添加连接池依赖（可选）
 

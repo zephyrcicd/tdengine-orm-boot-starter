@@ -2,6 +2,9 @@
 
 [English](README_EN.md) | [中文](README.md)
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.zephyrcicd/tdengine-orm-boot-starter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > `tdengine-orm-boot-starter` is a semi-ORM framework based on SpringBootJdbc for convenient operation of TDengine data, inspired by MyBatisPlus design
 
 ### Tech Stack
@@ -11,19 +14,12 @@
 
 ## Quick Start
 
-1. Add JitPack repository and dependency to your project's `pom.xml`:
+1. Add dependency to your project's `pom.xml`:
     ```xml
-    <repositories>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
-
     <dependency>
-        <groupId>com.github.zephyrcicd</groupId>
+        <groupId>io.github.zephyrcicd</groupId>
         <artifactId>tdengine-orm-boot-starter</artifactId>
-        <version>main-SNAPSHOT</version> <!-- or use a specific tag like v1.0.0 -->
+        <version>1.1.0</version>
     </dependency>
     ```
 2. Configure database connection in `application.yml`
@@ -45,7 +41,22 @@ The starter supports the following connection pools, listed in order of priority
 
 #### 1. Add Dependencies
 
-Add JitPack repository and TDengine ORM Starter dependency to your project's `pom.xml`:
+Add TDengine ORM Starter dependency to your project's `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>io.github.zephyrcicd</groupId>
+    <artifactId>tdengine-orm-boot-starter</artifactId>
+    <version>1.1.0</version>
+</dependency>
+```
+
+**Version Notes**:
+- `1.1.0`: Current stable version (recommended for production)
+- Check [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) for the latest version
+
+**Optional: Get Development Version from JitPack**
+If you need the latest development version, you can get it from JitPack:
 
 ```xml
 <repositories>
@@ -58,15 +69,9 @@ Add JitPack repository and TDengine ORM Starter dependency to your project's `po
 <dependency>
     <groupId>com.github.zephyrcicd</groupId>
     <artifactId>tdengine-orm-boot-starter</artifactId>
-    <version>main-SNAPSHOT</version> <!-- Latest from main branch -->
-    <!-- or use a specific tag: <version>v1.0.0</version> -->
+    <version>main-SNAPSHOT</version> <!-- Latest development version -->
 </dependency>
 ```
-
-**Version Selection**:
-- `main-SNAPSHOT`: Latest code from main branch (always up-to-date)
-- `v1.0.0` or other tags: Stable release versions (recommended for production)
-- Commit hash: Specific commit version
 
 #### 2. Add Connection Pool Dependency (Optional)
 
@@ -362,3 +367,20 @@ public class Application {
 2. If multiple connection pools are introduced, one will be selected based on priority
 3. Advanced connection pool configurations can be overridden by custom DataSource Bean
 4. This starter is compatible with Spring Boot's auto-configuration and won't cause conflicts
+
+### Maven Build Instructions
+
+Since the test code requires an actual TDengine database connection, it's recommended to skip tests when building the project:
+
+```bash
+# Package skipping tests
+mvn clean package -DskipTests
+
+# Install to local repository skipping tests
+mvn clean install -DskipTests
+```
+
+If you need to run tests, ensure:
+1. TDengine service is running
+2. Database connection information in configuration files is correct
+3. Test database is created with appropriate permissions
