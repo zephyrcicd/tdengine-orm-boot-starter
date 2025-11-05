@@ -48,4 +48,11 @@ public @interface TdColumn {
      * @return boolean
      */
     boolean compositeKey() default false;
+
+    /**
+     * 表示该字段是否实际存在
+     *
+     * @return boolean
+     */
+    boolean exist() default true;
 } 

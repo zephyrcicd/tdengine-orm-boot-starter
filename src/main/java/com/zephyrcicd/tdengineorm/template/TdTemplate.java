@@ -1,6 +1,5 @@
 package com.zephyrcicd.tdengineorm.template;
 
-import com.zephyrcicd.tdengineorm.annotation.TdTag;
 import com.zephyrcicd.tdengineorm.config.TdOrmConfig;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.constant.TdSqlConstant;
@@ -11,7 +10,10 @@ import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.mapper.TdColumnRowMapper;
 import com.zephyrcicd.tdengineorm.strategy.DefaultDynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
-import com.zephyrcicd.tdengineorm.util.*;
+import com.zephyrcicd.tdengineorm.util.AssertUtil;
+import com.zephyrcicd.tdengineorm.util.ClassUtil;
+import com.zephyrcicd.tdengineorm.util.JsonUtil;
+import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdWrappers;
@@ -19,13 +21,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.data.util.Pair;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
 
@@ -167,7 +168,7 @@ public class TdTemplate {
         String tbName = TdSqlUtil.getTbName(entity.getClass());
 
         // 拿到所有字段进行赋值
-        List<Field> fields = ClassUtil.getAllFields(entity.getClass());
+        List<Field> fields = TdSqlUtil.getExistFields(entity.getClass());
         if (CollectionUtils.isEmpty(fields)) {
             throw new TdOrmException(TdOrmExceptionCode.NO_FILED);
         }
@@ -186,8 +187,8 @@ public class TdTemplate {
      * <p><b>适用场景：</b>TDengine 子表插入（根据设备ID等生成子表名）、动态分表场景</p>
      *
      * @param dynamicNameStrategy 实体类表名称获取策略
-     * @param object                  实体对象
-     * @param <T>                     实体类型
+     * @param object              实体对象
+     * @param <T>                 实体类型
      * @return 影响的行数
      * @throws TdOrmException 如果表名为空或实体类没有非TAG字段
      */
@@ -196,7 +197,7 @@ public class TdTemplate {
         AssertUtil.notBlank(tbName, new TdOrmException(TdOrmExceptionCode.TABLE_NAME_BLANK));
 
         // 获取非TAG字段
-        List<Field> noTagFieldList = TdSqlUtil.getNoTagFieldList(object.getClass());
+        List<Field> noTagFieldList = TdSqlUtil.getExistNonTagFields(object.getClass());
         if (CollectionUtils.isEmpty(noTagFieldList)) {
             throw new TdOrmException(TdOrmExceptionCode.NO_COMM_FIELD);
         }
@@ -208,7 +209,7 @@ public class TdTemplate {
     private <T> int doInsertEntity(T object, String tbName, List<Field> noTagFieldList) {
         Map<String, Object> paramsMap = new HashMap<>(noTagFieldList.size());
 
-        String sql = SqlConstant.INSERT_INTO +  addSingleQuotes(tbName) + TdSqlUtil.joinColumnNamesAndValuesSql(object, noTagFieldList, paramsMap);
+        String sql = SqlConstant.INSERT_INTO + addSingleQuotes(tbName) + TdSqlUtil.joinColumnNamesAndValuesSql(object, noTagFieldList, paramsMap);
         return updateWithTdLog(sql, paramsMap);
     }
 
@@ -266,7 +267,7 @@ public class TdTemplate {
     public <T> int insertUsing(T object, DynamicNameStrategy<T> dynamicTbNameStrategy) {
         // 获取SQL&参数值
         Pair<String, Map<String, Object>> finalSqlAndParamsMapPair = TdSqlUtil.getFinalInsertUsingSql(object,
-                ClassUtil.getAllFields(object.getClass()), dynamicTbNameStrategy);
+                TdSqlUtil.getExistFields(object.getClass()), dynamicTbNameStrategy);
 
         String finalSql = finalSqlAndParamsMapPair.getFirst();
         Map<String, Object> paramsMap = finalSqlAndParamsMapPair.getSecond();
@@ -326,7 +327,7 @@ public class TdTemplate {
             throw new IllegalArgumentException("Partition size must be greater than zero");
         }
         // 不使用USING语法时, 不能指定TAG字段的值
-        List<Field> fieldList = ClassUtil.getAllFields(clazz, field -> !field.isAnnotationPresent(TdTag.class));
+        List<Field> fieldList = TdSqlUtil.getExistNonTagFields(clazz);
 
         // 按照命名策略对数据进行分组,相同表名的数据放在一起
         Map<String, List<T>> tableGroupMap = new HashMap<>();
@@ -475,7 +476,7 @@ public class TdTemplate {
      * @param pageSize 每批次大小
      * @return 每批插入影响的行数数组
      */
-    public int[] batchInsert(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String,Object>> strategy,
+    public int[] batchInsert(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String, Object>> strategy,
                              int pageSize) {
         if (pageSize <= 0) {
             throw new IllegalArgumentException("Partition size must be greater than zero");
@@ -609,9 +610,7 @@ public class TdTemplate {
         List<List<T>> partition = ListUtils.partition(entityList, pageSize);
         T t = partition.get(0).get(0);
 
-        List<Field> tagFields = ClassUtil.getAllFields(t.getClass()).stream()
-                .filter(field -> field.isAnnotationPresent(TdTag.class))
-                .collect(Collectors.toList());
+        List<Field> tagFields = TdSqlUtil.getExistTagFields(t.getClass());
 
         Map<String, Object> tagValueMap = TdSqlUtil.getFiledValueMap(tagFields, t);
         int[] result = new int[partition.size()];
@@ -620,7 +619,7 @@ public class TdTemplate {
             Map<String, Object> paramsMap = new HashMap<>(list.size());
             paramsMap.putAll(tagValueMap);
             StringBuilder finalSql = new StringBuilder(TdSqlUtil.getInsertUsingSqlPrefix(t,
-                    ClassUtil.getAllFields(clazz), dynamicTbNameStrategy, paramsMap));
+                    TdSqlUtil.getExistFields(clazz), dynamicTbNameStrategy, paramsMap));
             joinInsetSqlSuffix(list, finalSql, paramsMap);
             int singleResult = namedParameterJdbcTemplate.update(finalSql.toString(), paramsMap);
             if (log.isDebugEnabled()) {
@@ -755,7 +754,7 @@ public class TdTemplate {
     private static <T> void joinInsetSqlSuffix(List<T> list, StringBuilder finalSql, Map<String, Object> paramsMap) {
         for (int i = 0; i < list.size(); i++) {
             T entity = list.get(i);
-            List<Field> fields = ClassUtil.getAllFields(entity.getClass(), field -> !field.isAnnotationPresent(TdTag.class));
+            List<Field> fields = TdSqlUtil.getExistNonTagFields(entity.getClass());
             Pair<String, Map<String, Object>> insertSqlSuffix = TdSqlUtil.getInsertSqlSuffix(entity, fields, i);
             finalSql.append(insertSqlSuffix.getFirst());
             paramsMap.putAll(insertSqlSuffix.getSecond());

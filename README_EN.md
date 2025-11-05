@@ -220,7 +220,46 @@ public class IoTDataService {
 }
 ```
 
-#### 6. Entity Class Example
+#### 6. Annotation Guide
+
+The framework provides three core annotations to define TDengine entity classes:
+
+##### @TdTable
+Maps entity class to TDengine table or stable:
+```java
+@TdTable("sensor_data")  // Specify table name
+public class SensorData {
+    // ...
+}
+```
+
+##### @TdTag
+Marks TAG fields (TDengine metadata columns) for sub-table grouping and filtering:
+```java
+@TdTag
+private String deviceId;  // TAG field
+```
+
+##### @TdColumn
+Field column mapping annotation with various configurations:
+```java
+@TdColumn(value = "temp", type = TdFieldTypeEnum.DOUBLE, length = 8)
+private Double temperature;
+
+@TdColumn(exist = false)
+private String internalField;  // Internal field excluded from SQL generation
+```
+
+**@TdColumn Main Attributes:**
+- `value`: Custom column name (defaults to field name in snake_case)
+- `type`: Specify TDengine field type (auto-inferred by default)
+- `length`: Field length for NCHAR, BINARY, VARCHAR types
+- `exist`: Controls whether field participates in SQL generation (default true)
+- `comment`: Field comment
+- `nullable`: Whether field allows null values
+- `compositeKey`: Whether field is composite primary key (TDengine 3.3+ only)
+
+#### 7. Entity Class Example
 
 ```java
 @TdTable("sensor_data")
@@ -230,11 +269,14 @@ public class SensorData {
     private String deviceId;
 
     @TdTag
+    @TdColumn(value = "location", length = 100)
     private String location;
 
+    @TdColumn(value = "temp", type = TdFieldTypeEnum.DOUBLE)
     private Double temperature;
+    
     private Double humidity;
-    private Timestamp ts;
+    private Long ts;
 
     // getter/setter methods...
 }

@@ -1,7 +1,9 @@
 package com.zephyrcicd.tdengineorm.entity;
 
+import com.zephyrcicd.tdengineorm.annotation.TdColumn;
 import com.zephyrcicd.tdengineorm.annotation.TdTable;
 import com.zephyrcicd.tdengineorm.annotation.TdTag;
+import com.zephyrcicd.tdengineorm.enums.TdFieldTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -37,26 +39,36 @@ public class SensorData {
      * 时间戳
      */
     private Long ts;
+    
     /**
      * 设备ID - TAG字段
      */
     @TdTag
+    @TdColumn(length = 50, comment = "设备唯一标识")
     private String deviceId;
 
     /**
      * 设备位置 - TAG字段
      */
     @TdTag
+    @TdColumn(value = "location", length = 100, comment = "设备部署位置")
     private String location;
 
     /**
-     * 温度
+     * 温度 - 自定义列名和类型
      */
+    @TdColumn(value = "temp", type = TdFieldTypeEnum.DOUBLE, comment = "环境温度")
     private Double temperature;
 
     /**
-     * 湿度
+     * 湿度 - 使用默认映射
      */
     private Double humidity;
+
+    /**
+     * 内部计算字段 - 不参与SQL生成
+     */
+    @TdColumn(exist = false)
+    private String calculatedField;
 
 }

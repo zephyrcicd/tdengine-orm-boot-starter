@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -30,9 +31,72 @@ import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
  */
 @Slf4j
 public class TdSqlUtil {
+
+    // ========== 统一字段过滤方法 ==========
+
+    /**
+     * 字段存在性过滤器：过滤出 exist=true 的字段
+     */
+    private static Predicate<Field> existFieldFilter() {
+        return field -> {
+            TdColumn fieldAnnotation = field.getAnnotation(TdColumn.class);
+            return fieldAnnotation == null || fieldAnnotation.exist();
+        };
+    }
+
+    /**
+     * TAG 字段过滤器：过滤出有 @TdTag 注解的字段
+     */
+    private static Predicate<Field> tagFieldFilter() {
+        return field -> field.isAnnotationPresent(TdTag.class);
+    }
+
+    /**
+     * 非 TAG 字段过滤器：过滤出没有 @TdTag 注解的字段
+     */
+    private static Predicate<Field> nonTagFieldFilter() {
+        return field -> !field.isAnnotationPresent(TdTag.class);
+    }
+
+    /**
+     * 存在且为 TAG 的字段过滤器
+     */
+    public static Predicate<Field> existTagFieldFilter() {
+        return existFieldFilter().and(tagFieldFilter());
+    }
+
+    /**
+     * 存在且非 TAG 的字段过滤器
+     */
+    public static Predicate<Field> existNonTagFieldFilter() {
+        return existFieldFilter().and(nonTagFieldFilter());
+    }
+
+    /**
+     * 获取所有存在的字段（exist=true）
+     */
+    public static List<Field> getExistFields(Class<?> clazz) {
+        return ClassUtil.getAllFields(clazz, existFieldFilter());
+    }
+
+    /**
+     * 获取所有存在的非 TAG 字段
+     */
+    public static List<Field> getExistNonTagFields(Class<?> clazz) {
+        return ClassUtil.getAllFields(clazz, existNonTagFieldFilter());
+    }
+
+    /**
+     * 获取所有存在的 TAG 字段
+     */
+    public static List<Field> getExistTagFields(Class<?> clazz) {
+        return ClassUtil.getAllFields(clazz, existTagFieldFilter());
+    }
+
+    // ========== 原有方法 ==========
     public static Set<Pair<String, String>> getAllTagFieldsPair(Object obj) {
         Class<?> entityClass = obj.getClass();
-        List<Field> fields = ClassUtil.getAllFields(entityClass, field -> field.isAnnotationPresent(TdTag.class));
+        List<Field> fields = getExistTagFields(entityClass);
         return fields.stream()
                 .map(field -> {
                     Object fieldValue = getFieldValue(obj, field);
@@ -101,7 +165,7 @@ public class TdSqlUtil {
      */
     public static StringBuilder getInsertIntoSqlPrefix(String tbName, List<Field> fields) {
         return new StringBuilder(SqlConstant.INSERT_INTO)
-                .append( addSingleQuotes(tbName) )
+                .append(addSingleQuotes(tbName))
                 .append(fields.stream().map(TdSqlUtil::getColumnName).collect(getColumnWithBracketCollector()))
                 .append(SqlConstant.VALUES);
     }
@@ -119,7 +183,7 @@ public class TdSqlUtil {
      */
     public static <T> Pair<String, Map<String, Object>> getInsertSqlSuffix(T entity, List<Field> fields, int index) {
         if (fields.isEmpty()) {
-            fields = ClassUtil.getAllFields(entity.getClass());
+            fields = getExistFields(entity.getClass());
         }
         Map<String, Object> paramsMapList = new HashMap<>();
         String suffixSql = fields.stream()
@@ -370,8 +434,9 @@ public class TdSqlUtil {
 
     public static <T> String joinSqlValue(T entity, List<Field> fields, Map<String, Object> paramsMapList, int index) {
         Map<Boolean, List<Field>> fieldGroups = fields.stream()
-                .collect(Collectors.partitioningBy(field -> field.isAnnotationPresent(TdTag.class)));
-        List<Field> commFields = fieldGroups.get(Boolean.FALSE);
+                .filter(existFieldFilter())
+                .collect(Collectors.partitioningBy(nonTagFieldFilter()));
+        List<Field> commFields = fieldGroups.get(Boolean.TRUE);
 
         return commFields.stream()
                 .map(field -> {
@@ -392,7 +457,7 @@ public class TdSqlUtil {
         // 根据策略生成表名(传入实体对象以支持基于数据的命名)
         String tableName = dynamicTbNameStrategy.getTableName(object);
         return SqlConstant.INSERT_INTO + addSingleQuotes(tableName)
-               + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql + SqlConstant.VALUES;
+                + TdSqlConstant.USING + TdSqlUtil.getTbName(object.getClass()) + tagFieldSql + commFieldSql + SqlConstant.VALUES;
     }
 
 
@@ -424,7 +489,9 @@ public class TdSqlUtil {
      * @return {@link Pair }<{@link List }<{@link Field }> Tag字段, {@link List }<{@link Field }>> 非Tag字段
      */
     public static Pair<List<Field>, List<Field>> differentiateByTag(List<Field> fieldList) {
-        Map<Boolean, List<Field>> fieldGroups = fieldList.stream().collect(Collectors.partitioningBy(field -> field.isAnnotationPresent(TdTag.class)));
+        Map<Boolean, List<Field>> fieldGroups = fieldList.stream()
+                .filter(existFieldFilter())
+                .collect(Collectors.partitioningBy(tagFieldFilter()));
         List<Field> tagFields = fieldGroups.get(Boolean.TRUE);
         List<Field> commFields = fieldGroups.get(Boolean.FALSE);
         return Pair.of(tagFields, commFields);
@@ -531,16 +598,6 @@ public class TdSqlUtil {
         return finalSb.append(SqlConstant.RIGHT_BRACKET).toString();
     }
 
-
-    /**
-     * 获取非Tag字段列表
-     *
-     * @param clazz clazz
-     * @return {@link List }<{@link Field }>
-     */
-    public static List<Field> getNoTagFieldList(Class<?> clazz) {
-        return ClassUtil.getAllFields(clazz, field -> !field.isAnnotationPresent(TdTag.class));
-    }
 
 
     /**

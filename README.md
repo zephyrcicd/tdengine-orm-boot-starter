@@ -220,7 +220,46 @@ public class IoTDataService {
 }
 ```
 
-#### 6. 实体类定义示例
+#### 6. 注解说明
+
+该框架提供三个核心注解来定义 TDengine 实体类：
+
+##### @TdTable
+用于映射实体类到 TDengine 表或超级表：
+```java
+@TdTable("sensor_data")  // 指定表名
+public class SensorData {
+    // ...
+}
+```
+
+##### @TdTag
+标记 TAG 字段（TDengine 的元数据列），用于子表分组和过滤：
+```java
+@TdTag
+private String deviceId;  // TAG 字段
+```
+
+##### @TdColumn
+字段列映射注解，支持多种配置：
+```java
+@TdColumn(value = "temp", type = TdFieldTypeEnum.DOUBLE, length = 8)
+private Double temperature;
+
+@TdColumn(exist = false)
+private String internalField;  // 不参与 SQL 生成的内部字段
+```
+
+**@TdColumn 主要属性：**
+- `value`：自定义列名（默认使用字段的下划线形式）
+- `type`：指定 TDengine 字段类型（默认自动推断）
+- `length`：字段长度，适用于 NCHAR、BINARY、VARCHAR 等类型
+- `exist`：控制字段是否参与 SQL 生成（默认 true）
+- `comment`：字段注释
+- `nullable`：是否允许为空
+- `compositeKey`：是否为复合主键（仅 TDengine 3.3+ 支持）
+
+#### 7. 实体类定义示例
 
 ```java
 @TdTable("sensor_data")
@@ -230,11 +269,14 @@ public class SensorData {
     private String deviceId;
 
     @TdTag
+    @TdColumn(value = "location", length = 100)
     private String location;
 
+    @TdColumn(value = "temp", type = TdFieldTypeEnum.DOUBLE)
     private Double temperature;
+    
     private Double humidity;
-    private Timestamp ts;
+    private Long ts;
 
     // getter/setter 方法...
 }
