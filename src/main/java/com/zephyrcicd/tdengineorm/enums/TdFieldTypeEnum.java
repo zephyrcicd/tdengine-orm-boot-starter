@@ -10,35 +10,36 @@ import java.util.function.Predicate;
 
 /**
  * TDengine字段类型枚举
- *
+ * 
  * @author Zephyr
  * @date 2024/05/15
+ * @see <a href="https://docs.taosdata.com/reference/connector/java/#%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E6%98%A0%E5%B0%84">TDengine Java连接器数据类型映射</a>
  */
 @Getter
 public enum TdFieldTypeEnum {
     /**
      * TDengine唯一的时间类型
      */
-    TIMESTAMP("TIMESTAMP", "时间戳", "Timestamp", false),
+    TIMESTAMP("TIMESTAMP", "时间戳", "Long", false),
     BOOL("BOOL", "布尔型", "Boolean", false),
     TINYINT("TINYINT", "单字节整型", "Byte", false),
-    TINYINT_UNSIGNED("TINYINT UNSIGNED", "无符号单字节整型", "Short", false),
+    TINYINT_UNSIGNED("TINYINT UNSIGNED (仅在 WebSocket 连接方式支持)", "无符号单字节整型", "Short", false),
     SMALLINT("SMALLINT", "短整型", "Short", false),
-    SMALLINT_UNSIGNED("SMALLINT UNSIGNED", "无符号短整型", "Integer", false),
+    SMALLINT_UNSIGNED("SMALLINT UNSIGNED (仅在 WebSocket 连接方式支持)", "无符号短整型", "Integer", false),
     INT("INT", "整型", "Integer", false),
-    INT_UNSIGNED("INT UNSIGNED", "无符号整数", "Long", false),
+    INT_UNSIGNED("INT UNSIGNED (仅在 WebSocket 连接方式支持)", "无符号整数", "Long", false),
     BIGINT("BIGINT", "长整型", "Long", false),
-    BIGINT_UNSIGNED("BIGINT UNSIGNED", "无符号长整型", "BigInteger", false),
+    BIGINT_UNSIGNED("BIGINT UNSIGNED (仅在 WebSocket 连接方式支持)", "无符号长整型", "BigInteger", false),
     FLOAT("FLOAT", "浮点型", "Float", false),
     DOUBLE("DOUBLE", "双精度浮点型", "Double", false),
     VARCHAR("VARCHAR", "变长字符串", "byte[]", true),
-    BINARY("BINARY", "单字节字符串", "byte[]", true),
+    BINARY("BINARY", "单字节字符串 (官方不建议使用，请用 VARBINARY 类型代替)", "byte[]", true),
     NCHAR("NCHAR", "多字节字符串", "String", true),
-    JSON("JSON", "JSON", "String", false),
+    JSON("JSON", "JSON (仅在 tag 中支持)", "String", false),
     VARBINARY("VARBINARY", "可变长度二进制", "byte[]", true),
     GEOMETRY("GEOMETRY", "几何类型", "byte[]", true),
-    BLOB("BLOB", "二进制大对象", "byte[]", true),
-    DECIMAL("DECIMAL", "精确数值", "BigDecimal", false);
+    BLOB("BLOB", "二进制大对象 (仅在列中支持)", "byte[]", true),
+    DECIMAL("DECIMAL", "精确数值 (仅在 WebSocket 连接方式支持)", "BigDecimal", false);
 
     /**
      * TDEngine字段类型
