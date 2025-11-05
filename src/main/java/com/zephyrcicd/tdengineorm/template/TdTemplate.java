@@ -54,7 +54,7 @@ public class TdTemplate {
      * @return int
      */
     public <T> int createStableTableIfNotExist(Class<T> clazz) {
-        List<Field> fieldList = ClassUtil.getAllFields(clazz);
+        List<Field> fieldList = TdSqlUtil.getExistFields(clazz);
         // 区分普通字段和Tag字段
         Pair<List<Field>, List<Field>> fieldListPairByTag = TdSqlUtil.differentiateByTag(fieldList);
 
@@ -65,7 +65,8 @@ public class TdTemplate {
 
         Field primaryTsField = TdSqlUtil.checkPrimaryTsField(commFieldList);
 
-        String finalSql = TdSqlConstant.CREATE_STABLE_IF_NOT_EXIST + TdSqlUtil.getTbName(clazz) + TdSqlUtil.buildCreateColumn(commFieldList, primaryTsField);
+        String finalSql = TdSqlConstant.CREATE_STABLE_IF_NOT_EXIST + TdSqlUtil.getTbName(clazz)
+                + TdSqlUtil.buildCreateColumn(commFieldList, primaryTsField);
         List<Field> tagFieldList = fieldListPairByTag.getFirst();
 
         if (CollectionUtils.isEmpty(tagFieldList)) {

@@ -489,9 +489,7 @@ public class TdSqlUtil {
      * @return {@link Pair }<{@link List }<{@link Field }> Tag字段, {@link List }<{@link Field }>> 非Tag字段
      */
     public static Pair<List<Field>, List<Field>> differentiateByTag(List<Field> fieldList) {
-        Map<Boolean, List<Field>> fieldGroups = fieldList.stream()
-                .filter(existFieldFilter())
-                .collect(Collectors.partitioningBy(tagFieldFilter()));
+        Map<Boolean, List<Field>> fieldGroups = fieldList.stream().collect(Collectors.partitioningBy(tagFieldFilter()));
         List<Field> tagFields = fieldGroups.get(Boolean.TRUE);
         List<Field> commFields = fieldGroups.get(Boolean.FALSE);
         return Pair.of(tagFields, commFields);
@@ -560,6 +558,7 @@ public class TdSqlUtil {
     public static String buildCreateColumn(List<Field> fields, Field primaryTsField) {
         fields.remove(primaryTsField);
 
+        // 首位必须是 ts TIMESTAMP
         String tsColumn = primaryTsField == null ? ""
                 : SqlConstant.HALF_ANGLE_DASH
                 + TdSqlUtil.getColumnName(primaryTsField)
@@ -594,7 +593,7 @@ public class TdSqlUtil {
                 finalSb.append(SqlConstant.COMMA);
             }
         }
-        // 首位必须是Timestamp字段
+
         return finalSb.append(SqlConstant.RIGHT_BRACKET).toString();
     }
 
@@ -611,7 +610,7 @@ public class TdSqlUtil {
                 .filter(field -> TdColumnConstant.TS.equals(TdSqlUtil.getColumnName(field)))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(tsFieldList)) {
-            throw new TdOrmException(TdOrmExceptionCode.NO_PRIMARY_TS);
+            throw new TdOrmException(TdOrmExceptionCode.NO_TS_COLUMN_FOUND);
         }
         return tsFieldList.get(0);
     }

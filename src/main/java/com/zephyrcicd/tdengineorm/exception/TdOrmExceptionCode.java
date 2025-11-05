@@ -26,9 +26,9 @@ public enum TdOrmExceptionCode implements ExceptionCode {
     NO_COMM_FIELD(70004, "No comm field found!"),
 
     /**
-     * 未找到被@PrimaryTs标记的字段
+     * 未找到`ts`字段（TDengine要求所有表都有ts字段，并且为Timestamp类型）
      */
-    NO_PRIMARY_TS(70005, "No @PrimaryTs field found!"),
+    NO_TS_COLUMN_FOUND(70005, "No `ts` column found!"),
 
     /**
      * sql嵌套层数超过1层
@@ -42,12 +42,12 @@ public enum TdOrmExceptionCode implements ExceptionCode {
     /**
      * 未匹配到合适的字段类型
      */
-    CANT_NOT_MATCH_FIELD_TYPE(7008, "Not matched to the appropriate field type!"),
+    CANT_NOT_MATCH_FIELD_TYPE(70008, "Not matched to the appropriate field type!"),
 
     /**
      * 参数值不能为空
      */
-    PARAM_VALUE_CANT_NOT_BE_NULL(7009, "Parameter value cannot be null!"),
+    PARAM_VALUE_CANT_NOT_BE_NULL(70009, "Parameter value cannot be null!"),
 
     /**
      * 多次调用GroupBy
