@@ -136,7 +136,9 @@ public class TdTemplate {
     }
 
     public <T, R> Page<R> page(long pageNo, long pageSize, TdQueryWrapper<T> wrapper, Class<R> resultClass) {
-        String countSql = "select count(*) from (" + wrapper.getSql() + ") t";
+        // 构建安全的计数查询SQL
+        String innerSql = wrapper.getSql();
+        String countSql = "SELECT COUNT(*) FROM (" + innerSql + ") t";
         Long count = namedParameterJdbcTemplate.queryForObject(countSql, wrapper.getParamsMap(), Long.class);
         Page<R> page = Page.<R>builder()
                 .pageNo(pageNo)
@@ -410,30 +412,7 @@ public class TdTemplate {
             return new int[0];
         }
 
-        // 查找key最多的Map并构建SQL前缀（性能优化：只构建一次）
-        Map<String, Object> maxKeysMap = findMapWithMaxKeys(dataList);
-        Set<String> columnNames = maxKeysMap.keySet();
-        String sqlPrefix = buildInsertSqlPrefix(tableName, columnNames);
-
-        // 分批进行插入
-        List<List<Map<String, Object>>> partition = ListUtils.partition(dataList, pageSize);
-        List<Integer> resultList = new ArrayList<>();
-        int processedCount = 0; // 全局计数器，确保参数名唯一
-
-        for (List<Map<String, Object>> batch : partition) {
-            Map<String, Object> paramsMap = new HashMap<>(batch.size() * columnNames.size());
-            String valuesSql = buildValuesSql(batch, columnNames, paramsMap, processedCount);
-            String sql = sqlPrefix + valuesSql;
-
-            int singleResult = namedParameterJdbcTemplate.update(sql, paramsMap);
-            if (log.isDebugEnabled()) {
-                log.debug("{} ===== execute result ====>{}", sql, singleResult);
-            }
-            resultList.add(singleResult);
-            processedCount += batch.size(); // 更新已处理数量
-        }
-
-        return resultList.stream().mapToInt(Integer::intValue).toArray();
+        return doBatchInsertMaps(tableName, dataList, pageSize);
     }
 
     /**
@@ -500,26 +479,9 @@ public class TdTemplate {
             String tbName = entry.getKey();
             List<Map<String, Object>> groupDataList = entry.getValue();
 
-            // 查找当前分组中key最多的Map并构建SQL前缀（每个表只构建一次）
-            Map<String, Object> maxKeysMap = findMapWithMaxKeys(groupDataList);
-            Set<String> columnNames = maxKeysMap.keySet();
-            String sqlPrefix = buildInsertSqlPrefix(tbName, columnNames);
-
-            // 以防数据量过大, 分批进行插入
-            List<List<Map<String, Object>>> partition = ListUtils.partition(groupDataList, pageSize);
-            int processedCount = 0; // 当前表的全局计数器
-
-            for (List<Map<String, Object>> batch : partition) {
-                Map<String, Object> paramsMap = new HashMap<>(batch.size() * columnNames.size());
-                String valuesSql = buildValuesSql(batch, columnNames, paramsMap, processedCount);
-                String sql = sqlPrefix + valuesSql;
-
-                int singleResult = namedParameterJdbcTemplate.update(sql, paramsMap);
-                if (log.isDebugEnabled()) {
-                    log.debug("{} ===== execute result ====>{}", sql, singleResult);
-                }
-                resultList.add(singleResult);
-                processedCount += batch.size(); // 更新已处理数量
+            int[] batchResults = doBatchInsertMaps(tbName, groupDataList, pageSize);
+            for (int result : batchResults) {
+                resultList.add(result);
             }
         }
 
@@ -548,7 +510,7 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList) {
-        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy());
+        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
     }
 
     /**
@@ -749,6 +711,38 @@ public class TdTemplate {
 
         sql.delete(sql.length() - 2, sql.length()); // 删除最后的", "
         return sql.toString();
+    }
+
+    /**
+     * 批量插入Map数据的核心实现方法
+     *
+     * @param tableName 表名
+     * @param dataList  数据列表
+     * @param pageSize  批次大小
+     * @return 每批插入影响的行数数组
+     */
+    private int[] doBatchInsertMaps(String tableName, List<Map<String, Object>> dataList, int pageSize) {
+        // 查找key最多的Map并构建SQL前缀（性能优化：只构建一次）
+        Map<String, Object> maxKeysMap = findMapWithMaxKeys(dataList);
+        Set<String> columnNames = maxKeysMap.keySet();
+        String sqlPrefix = buildInsertSqlPrefix(tableName, columnNames);
+
+        // 分批进行插入
+        List<List<Map<String, Object>>> partition = ListUtils.partition(dataList, pageSize);
+        List<Integer> resultList = new ArrayList<>();
+        int processedCount = 0; // 全局计数器，确保参数名唯一
+
+        for (List<Map<String, Object>> batch : partition) {
+            Map<String, Object> paramsMap = new HashMap<>(batch.size() * columnNames.size());
+            String valuesSql = buildValuesSql(batch, columnNames, paramsMap, processedCount);
+            String sql = sqlPrefix + valuesSql;
+
+            int singleResult = updateWithTdLog(sql, paramsMap);
+            resultList.add(singleResult);
+            processedCount += batch.size(); // 更新已处理数量
+        }
+
+        return resultList.stream().mapToInt(Integer::intValue).toArray();
     }
 
     private static <T> void joinInsetSqlSuffix(List<T> list, StringBuilder finalSql, Map<String, Object> paramsMap) {
