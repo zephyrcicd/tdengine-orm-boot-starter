@@ -11,7 +11,6 @@ import com.zephyrcicd.tdengineorm.mapper.TdColumnRowMapper;
 import com.zephyrcicd.tdengineorm.strategy.DefaultDynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.util.AssertUtil;
-import com.zephyrcicd.tdengineorm.util.ClassUtil;
 import com.zephyrcicd.tdengineorm.util.JsonUtil;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
