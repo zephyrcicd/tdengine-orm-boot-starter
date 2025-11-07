@@ -6,11 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/zephyrcicd/tdengine-orm-boot-starter.svg?style=social&label=Star)](https://github.com/zephyrcicd/tdengine-orm-boot-starter)
 
-> `tdengine-orm-boot-starter` 是一个基于 SpringBootJdbc 的半 ORM 框架，用于便捷操作 TDengine 数据，其设计参考了 MyBatisPlus
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=zephyrcicd/tdengine-orm-boot-starter&type=Date)](https://star-history.com/#zephyrcicd/tdengine-orm-boot-starter&Date)
+> `tdengine-orm-boot-starter` 是一个基于 SpringBootJdbc 的半 ORM 框架，用于便捷操作 TDengine 数据，其设计参考了
+> MyBatisPlus
 
 ### 技术栈
 
@@ -49,6 +46,7 @@
 在你的项目 `pom.xml` 中添加 TDengine ORM Starter 依赖：
 
 ```xml
+
 <dependency>
     <groupId>io.github.zephyrcicd</groupId>
     <artifactId>tdengine-orm-boot-starter</artifactId>
@@ -57,6 +55,7 @@
 ```
 
 **版本说明**:
+
 - `1.1.0`: 当前稳定版本(推荐生产环境使用)
 - 查看 [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) 获取最新版本
 
@@ -64,6 +63,7 @@
 如果需要使用最新的开发版本，可以从 JitPack 获取：
 
 ```xml
+
 <repositories>
     <repository>
         <id>jitpack.io</id>
@@ -72,9 +72,9 @@
 </repositories>
 
 <dependency>
-    <groupId>com.github.zephyrcicd</groupId>
-    <artifactId>tdengine-orm-boot-starter</artifactId>
-    <version>main-SNAPSHOT</version> <!-- 最新开发版本 -->
+<groupId>com.github.zephyrcicd</groupId>
+<artifactId>tdengine-orm-boot-starter</artifactId>
+<version>main-SNAPSHOT</version> <!-- 最新开发版本 -->
 </dependency>
 ```
 
@@ -83,7 +83,9 @@
 根据需要选择一个连接池：
 
 ##### 使用 Druid 连接池
+
 ```xml
+
 <dependency>
     <groupId>com.alibaba</groupId>
     <artifactId>druid</artifactId>
@@ -92,7 +94,9 @@
 ```
 
 ##### 使用 HikariCP 连接池
+
 ```xml
+
 <dependency>
     <groupId>com.zaxxer</groupId>
     <artifactId>HikariCP</artifactId>
@@ -101,7 +105,9 @@
 ```
 
 ##### 使用 Apache DBCP2 连接池
+
 ```xml
+
 <dependency>
     <groupId>org.apache.commons</groupId>
     <artifactId>commons-dbcp2</artifactId>
@@ -116,6 +122,7 @@
 在 `application.yml` 或 `application.properties` 中配置 TDengine 连接信息：
 
 ##### application.yml 示例
+
 ```yaml
 td-orm:
   enabled: true  # 可选，默认为 true
@@ -127,6 +134,7 @@ td-orm:
 ```
 
 ##### application.properties 示例
+
 ```properties
 td-orm.enabled=true
 td-orm.url=jdbc:TAOS://localhost:6030/test
@@ -141,6 +149,7 @@ td-orm.log-level=ERROR
 在你的服务类中注入和使用 `TdTemplate`：
 
 ```java
+
 @Service
 public class IoTDataService {
 
@@ -170,6 +179,7 @@ public class IoTDataService {
 **示例代码位置**: `src/test/java/com/zephyrcicd/tdengineorm/template/TdTemplateInsertExamples.java`
 
 **包含的示例**:
+
 - 示例0: 使用TdTemplate创建超级表
 - 示例1-2: 基础插入操作（普通表、超级表）
 - 示例3-4: 动态表名策略插入（基于实体、基于Map）
@@ -180,6 +190,7 @@ public class IoTDataService {
 - 示例13-14: 批量插入Map数据（指定表名、策略表名）
 
 **重要说明**:
+
 - 这些是纯示例代码，不是可运行的测试类
 - 请在您的Spring Boot项目中参考这些示例
 - 实际使用时，通过`@Autowired`注入`TdTemplate`即可
@@ -187,6 +198,7 @@ public class IoTDataService {
 **在您的项目中使用示例**:
 
 ```java
+
 @Service
 public class IoTDataService {
 
@@ -200,7 +212,7 @@ public class IoTDataService {
 
         // 示例3: 动态表名插入
         DynamicNameStrategy<SensorData> strategy = entity ->
-            "sensor_" + entity.getDeviceId();
+                "sensor_" + entity.getDeviceId();
         tdTemplate.insert(strategy, data);
 
         // 示例5: USING语法插入（自动创建子表）
@@ -210,7 +222,7 @@ public class IoTDataService {
     public void batchSaveData(List<SensorData> dataList) {
         // 示例6: 批量插入到不同子表
         DynamicNameStrategy<SensorData> strategy = entity ->
-            "sensor_" + entity.getDeviceId();
+                "sensor_" + entity.getDeviceId();
         tdTemplate.batchInsert(SensorData.class, dataList, strategy);
     }
 
@@ -232,6 +244,7 @@ public class IoTDataService {
 📦 **[tdengine-orm-demo](https://github.com/zephyrcicd/tdengine-orm-demo)**
 
 Demo 项目特点：
+
 - ✅ 15个完整的测试用例，覆盖所有核心功能
 - ✅ 包含性能统计和吞吐量测试
 - ✅ 演示 PARTITION BY 分区查询、时间窗口等高级功能
@@ -245,8 +258,11 @@ Demo 项目特点：
 该框架提供三个核心注解来定义 TDengine 实体类：
 
 ##### @TdTable
+
 用于映射实体类到 TDengine 表或超级表：
+
 ```java
+
 @TdTable("sensor_data")  // 指定表名
 public class SensorData {
     // ...
@@ -254,15 +270,21 @@ public class SensorData {
 ```
 
 ##### @TdTag
+
 标记 TAG 字段（TDengine 的元数据列），用于子表分组和过滤：
+
 ```java
+
 @TdTag
 private String deviceId;  // TAG 字段
 ```
 
 ##### @TdColumn
+
 字段列映射注解，支持多种配置：
+
 ```java
+
 @TdColumn(value = "temp", type = TdFieldTypeEnum.DOUBLE, length = 8)
 private Double temperature;
 
@@ -271,6 +293,7 @@ private String internalField;  // 不参与 SQL 生成的内部字段
 ```
 
 **@TdColumn 主要属性：**
+
 - `value`：自定义列名（默认使用字段的下划线形式）
 - `type`：指定 TDengine 字段类型（默认自动推断）
 - `length`：字段长度，适用于 NCHAR、BINARY、VARCHAR 等类型
@@ -282,6 +305,7 @@ private String internalField;  // 不参与 SQL 生成的内部字段
 #### 8. 实体类定义示例
 
 ```java
+
 @TdTable("sensor_data")
 public class SensorData {
 
@@ -294,7 +318,7 @@ public class SensorData {
 
     @TdColumn(value = "temp", type = TdFieldTypeEnum.DOUBLE)
     private Double temperature;
-    
+
     private Double humidity;
     private Long ts;
 
@@ -324,13 +348,16 @@ public class SensorData {
 
 #### 自定义连接池
 
-如果你需要自定义连接池配置，可以创建自己的 DataSource bean。只要将 bean 命名为 `tdengineDataSource`，starter 就会使用你的自定义配置。以下是具体方法：
+如果你需要自定义连接池配置，可以创建自己的 DataSource bean。只要将 bean 命名为 `tdengineDataSource`，starter
+就会使用你的自定义配置。以下是具体方法：
 
 ##### 示例：自定义 HikariCP 配置
+
 ```java
+
 @Configuration
 public class CustomDataSourceConfig {
-    
+
     @Bean("tdengineDataSource")
     public DataSource tdengineDataSource() {
         HikariConfig config = new HikariConfig();
@@ -338,24 +365,26 @@ public class CustomDataSourceConfig {
         config.setUsername("root");
         config.setPassword("taosdata");
         config.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
-        
+
         // 自定义连接池配置
         config.setMaximumPoolSize(30);
         config.setMinimumIdle(10);
         config.setConnectionTimeout(30000);
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
-        
+
         return new HikariDataSource(config);
     }
 }
 ```
 
 ##### 示例：自定义 Druid 配置
+
 ```java
+
 @Configuration
 public class CustomDataSourceConfig {
-    
+
     @Bean("tdengineDataSource")
     public DataSource tdengineDataSource() {
         DruidDataSource dataSource = new DruidDataSource();
@@ -363,7 +392,7 @@ public class CustomDataSourceConfig {
         dataSource.setUsername("root");
         dataSource.setPassword("taosdata");
         dataSource.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
-        
+
         // 自定义连接池配置
         dataSource.setInitialSize(10);
         dataSource.setMaxActive(50);
@@ -371,7 +400,7 @@ public class CustomDataSourceConfig {
         dataSource.setMaxWait(30000);
         dataSource.setValidationQuery("SELECT 1");
         dataSource.setTestWhileIdle(true);
-        
+
         return dataSource;
     }
 }
@@ -382,6 +411,7 @@ public class CustomDataSourceConfig {
 如果不提供自定义的 DataSource bean，starter 将使用以下默认值：
 
 ##### Druid 默认配置
+
 - initialSize: 5
 - maxActive: 20
 - minIdle: 5
@@ -390,6 +420,7 @@ public class CustomDataSourceConfig {
 - testWhileIdle: true
 
 ##### HikariCP 默认配置
+
 - maximumPoolSize: 20
 - minimumIdle: 5
 - connectionTimeout: 30000ms
@@ -397,6 +428,7 @@ public class CustomDataSourceConfig {
 - maxLifetime: 1800000ms
 
 ##### DBCP2 默认配置
+
 - initialSize: 5
 - maxTotal: 20
 - minIdle: 5
@@ -415,6 +447,7 @@ td-orm:
 或者在启动类上排除自动配置：
 
 ```java
+
 @SpringBootApplication(exclude = {TdOrmAutoConfiguration.class})
 public class Application {
     public static void main(String[] args) {
@@ -443,6 +476,7 @@ mvn clean install -DskipTests
 ```
 
 如果需要运行测试，请确保：
+
 1. TDengine 服务正在运行
 2. 配置文件中的数据库连接信息正确
 3. 测试数据库已创建并有相应权限
@@ -461,5 +495,6 @@ mvn clean install -DskipTests
 ### 给个 Star ⭐
 
 如果这个项目对您有帮助，欢迎给个 Star 支持一下！您的支持是我们持续改进的动力。
-
 [![GitHub stars](https://img.shields.io/github/stars/zephyrcicd/tdengine-orm-boot-starter.svg?style=social&label=Star)](https://github.com/zephyrcicd/tdengine-orm-boot-starter)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=zephyrcicd/tdengine-orm-boot-starter&type=Date)](https://star-history.com/#zephyrcicd/tdengine-orm-boot-starter&Date)
