@@ -4,8 +4,13 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.zephyrcicd/tdengine-orm-boot-starter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/zephyrcicd/tdengine-orm-boot-starter.svg?style=social&label=Star)](https://github.com/zephyrcicd/tdengine-orm-boot-starter)
 
 > `tdengine-orm-boot-starter` is a semi-ORM framework based on SpringBootJdbc for convenient operation of TDengine data, inspired by MyBatisPlus design
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=zephyrcicd/tdengine-orm-boot-starter&type=Date)](https://star-history.com/#zephyrcicd/tdengine-orm-boot-starter&Date)
 
 ### Tech Stack
 
@@ -220,7 +225,22 @@ public class IoTDataService {
 }
 ```
 
-#### 6. Annotation Guide
+#### 6. Complete Example Project
+
+If you want to see complete, runnable usage examples, please check out our Demo project:
+
+📦 **[tdengine-orm-demo](https://github.com/zephyrcicd/tdengine-orm-demo)**
+
+Demo Project Features:
+- ✅ 15 complete test cases covering all core features
+- ✅ Includes performance statistics and throughput tests
+- ✅ Demonstrates PARTITION BY queries, time window functions, and other advanced features
+- ✅ Ready to use out of the box - just configure database connection and run
+- ✅ Clean and clear code, perfect for learning and reference
+
+By running the Demo project's test cases, you can quickly understand the various usage patterns of TdTemplate.
+
+#### 7. Annotation Guide
 
 The framework provides three core annotations to define TDengine entity classes:
 
@@ -259,7 +279,7 @@ private String internalField;  // Internal field excluded from SQL generation
 - `nullable`: Whether field allows null values
 - `compositeKey`: Whether field is composite primary key (TDengine 3.3+ only)
 
-#### 7. Entity Class Example
+#### 8. Entity Class Example
 
 ```java
 @TdTable("sensor_data")
@@ -426,3 +446,20 @@ If you need to run tests, ensure:
 1. TDengine service is running
 2. Database connection information in configuration files is correct
 3. Test database is created with appropriate permissions
+
+## Contribution & Support
+
+### Welcome Contributions
+
+We warmly welcome developers to contribute to TDengine ORM Boot Starter! Whether it's:
+
+- 🐛 **Reporting Issues** - Found a bug? Please submit it in [Issues](https://github.com/zephyrcicd/tdengine-orm-boot-starter/issues)
+- 💡 **Feature Suggestions** - Have great ideas? Feel free to discuss them in Issues
+- 🔧 **Submit Code** - Welcome to submit Pull Requests to improve the project
+- 📖 **Improve Documentation** - Help us enhance documentation and examples
+
+### Give us a Star ⭐
+
+If this project helps you, please give us a Star! Your support motivates us to keep improving.
+
+[![GitHub stars](https://img.shields.io/github/stars/zephyrcicd/tdengine-orm-boot-starter.svg?style=social&label=Star)](https://github.com/zephyrcicd/tdengine-orm-boot-starter)

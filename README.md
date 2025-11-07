@@ -4,8 +4,13 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.zephyrcicd/tdengine-orm-boot-starter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/zephyrcicd/tdengine-orm-boot-starter.svg?style=social&label=Star)](https://github.com/zephyrcicd/tdengine-orm-boot-starter)
 
 > `tdengine-orm-boot-starter` 是一个基于 SpringBootJdbc 的半 ORM 框架，用于便捷操作 TDengine 数据，其设计参考了 MyBatisPlus
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=zephyrcicd/tdengine-orm-boot-starter&type=Date)](https://star-history.com/#zephyrcicd/tdengine-orm-boot-starter&Date)
 
 ### 技术栈
 
@@ -220,7 +225,22 @@ public class IoTDataService {
 }
 ```
 
-#### 6. 注解说明
+#### 6. 完整示例项目
+
+如果您想查看完整的、可运行的使用案例，请参考我们的 Demo 项目：
+
+📦 **[tdengine-orm-demo](https://github.com/zephyrcicd/tdengine-orm-demo)**
+
+Demo 项目特点：
+- ✅ 15个完整的测试用例，覆盖所有核心功能
+- ✅ 包含性能统计和吞吐量测试
+- ✅ 演示 PARTITION BY 分区查询、时间窗口等高级功能
+- ✅ 开箱即用，配置数据库连接后即可运行
+- ✅ 代码简洁清晰，适合学习参考
+
+通过运行 Demo 项目的测试用例，您可以快速了解 TdTemplate 的各种使用方式。
+
+#### 7. 注解说明
 
 该框架提供三个核心注解来定义 TDengine 实体类：
 
@@ -259,7 +279,7 @@ private String internalField;  // 不参与 SQL 生成的内部字段
 - `nullable`：是否允许为空
 - `compositeKey`：是否为复合主键（仅 TDengine 3.3+ 支持）
 
-#### 7. 实体类定义示例
+#### 8. 实体类定义示例
 
 ```java
 @TdTable("sensor_data")
@@ -426,3 +446,20 @@ mvn clean install -DskipTests
 1. TDengine 服务正在运行
 2. 配置文件中的数据库连接信息正确
 3. 测试数据库已创建并有相应权限
+
+## 贡献与支持
+
+### 欢迎贡献
+
+我们非常欢迎开发者为 TDengine ORM Boot Starter 贡献代码！无论是：
+
+- 🐛 **报告问题** - 发现 Bug 请在 [Issues](https://github.com/zephyrcicd/tdengine-orm-boot-starter/issues) 中提交
+- 💡 **功能建议** - 有好的想法欢迎在 Issues 中讨论
+- 🔧 **提交代码** - 欢迎提交 Pull Request 改进项目
+- 📖 **完善文档** - 帮助我们改进文档和示例
+
+### 给个 Star ⭐
+
+如果这个项目对您有帮助，欢迎给个 Star 支持一下！您的支持是我们持续改进的动力。
+
+[![GitHub stars](https://img.shields.io/github/stars/zephyrcicd/tdengine-orm-boot-starter.svg?style=social&label=Star)](https://github.com/zephyrcicd/tdengine-orm-boot-starter)
