@@ -19,7 +19,7 @@
     <dependency>
         <groupId>io.github.zephyrcicd</groupId>
         <artifactId>tdengine-orm-boot-starter</artifactId>
-        <version>1.2.1</version>
+        <version>1.2.2</version>
     </dependency>
     ```
 2. 在 `application.yml` 中配置数据库连接
