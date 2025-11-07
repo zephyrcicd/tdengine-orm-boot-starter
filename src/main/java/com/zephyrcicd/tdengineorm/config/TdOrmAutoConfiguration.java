@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.StringUtils;
 
@@ -25,7 +24,6 @@ import javax.sql.DataSource;
 public class TdOrmAutoConfiguration {
 
     public static final String TDENGINE_DATA_SOURCE = "tdengineDataSource";
-    public static final String TDENGINE_JDBC_TEMPLATE = "tdengineJdbcTemplate";
     public static final String TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE = "tdengineNamedParameterJdbcTemplate";
 
     /**
@@ -162,21 +160,12 @@ public class TdOrmAutoConfiguration {
     }
 
     /**
-     * 创建 TDengine 专用的 JdbcTemplate
-     */
-    @Bean(TDENGINE_JDBC_TEMPLATE)
-    @ConditionalOnMissingBean(name = TDENGINE_JDBC_TEMPLATE)
-    public JdbcTemplate tdengineJdbcTemplate(@Qualifier(TDENGINE_DATA_SOURCE) DataSource dataSource) {
-        return new JdbcTemplate(dataSource);
-    }
-
-    /**
      * 创建 TDengine 专用的 NamedParameterJdbcTemplate
      */
     @Bean(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE)
     @ConditionalOnMissingBean(name = TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE)
-    public NamedParameterJdbcTemplate tdengineNamedParameterJdbcTemplate(@Qualifier(TDENGINE_JDBC_TEMPLATE) JdbcTemplate jdbcTemplate) {
-        return new NamedParameterJdbcTemplate(jdbcTemplate);
+    public NamedParameterJdbcTemplate tdengineNamedParameterJdbcTemplate(@Qualifier(TDENGINE_DATA_SOURCE) DataSource dataSource) {
+        return new NamedParameterJdbcTemplate(dataSource);
     }
 
     /**

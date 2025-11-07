@@ -1,2 +1,6 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 com.zephyrcicd.tdengineorm.config.TdOrmAutoConfiguration
+
+
+org.springframework.data.jdbc.repository.config.DialectResolver$JdbcDialectProvider=\
+com.zephyrcicd.tdengineorm.dialect.TdengineDialectProvider
