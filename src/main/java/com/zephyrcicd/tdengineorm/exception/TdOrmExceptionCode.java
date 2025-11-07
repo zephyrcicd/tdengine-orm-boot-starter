@@ -64,6 +64,11 @@ public enum TdOrmExceptionCode implements ExceptionCode {
      * TAG字段不能是复合字段
      */
     TAG_FIELD_CAN_NOT_BE_COMPOSITE_FIELD(70013, "Tag field can't be composite key!"),
+
+    /**
+     * 不支持使用Map.class作为返回类型
+     */
+    MAP_TYPE_NOT_SUPPORTED(70014, "Map.class is not supported as result type! Please use listAsMap() or getOneAsMap() methods instead."),
     ;
 
     private final Integer code;

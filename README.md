@@ -47,7 +47,7 @@
 <dependency>
     <groupId>io.github.zephyrcicd</groupId>
     <artifactId>tdengine-orm-boot-starter</artifactId>
-    <version>1.1.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 

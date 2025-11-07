@@ -24,6 +24,7 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
 
     protected String limit;
     protected String groupBy;
+    protected String partitionBy;
     protected String[] selectColumnNames;
     protected String windowFunc;
     protected SelectCalcWrapper<T> selectCalcWrapper;
@@ -67,6 +68,9 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
 
         if (where.length() > 0) {
             sql.append(SqlConstant.WHERE).append(where);
+        }
+        if (StringUtils.hasText(partitionBy)) {
+            sql.append(partitionBy);
         }
         if (StringUtils.hasText(windowFunc)) {
             sql.append(windowFunc);
@@ -129,6 +133,16 @@ public abstract class AbstractTdQueryWrapper<T> extends AbstractTdWrapper<T> {
         return tdWindFuncTypeEnum.getKey() + SqlConstant.LEFT_BRACKET
                 + winFuncValue
                 + SqlConstant.RIGHT_BRACKET;
+    }
+
+    /**
+     * 设置 PARTITION BY 子句
+     * PARTITION BY 可以和窗口函数一起使用，但不能和 GROUP BY 一起使用
+     * 
+     * @param columns 分区列，多个列用逗号分隔
+     */
+    protected void doPartitionBy(String columns) {
+        partitionBy = " PARTITION BY " + columns + SqlConstant.BLANK;
     }
 
 

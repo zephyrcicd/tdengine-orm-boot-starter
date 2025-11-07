@@ -57,7 +57,11 @@ public enum TdSelectFuncEnum {
     /**
      * 字符串切割
      */
-    SUBSTR("SUBSTR({}) {}");
+    SUBSTR("SUBSTR({}) {}"),
+
+    MAX("MAX({}) {}"),
+
+    MIN("MIN({}) {}");
 
     private final String func;
 

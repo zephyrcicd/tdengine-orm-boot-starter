@@ -115,6 +115,42 @@ public class TdTemplate {
         return getOneWithTdLog(resultClass, sql, paramsMap);
     }
 
+    /**
+     * 查询单条数据并返回 Map（用于聚合查询等场景）
+     *
+     * <p>此方法专门用于返回 {@code Map<String, Object>} 类型的单条结果，
+     * 适用于以下场景：</p>
+     * <ul>
+     *     <li>单行聚合统计查询（AVG、SUM、COUNT、MAX、MIN 等）</li>
+     *     <li>自定义单列查询（不映射到实体类）</li>
+     *     <li>获取分组后的单个结果</li>
+     * </ul>
+     *
+     * <p>相比使用 {@code getOne(wrapper, Map.class)}，此方法：</p>
+     * <ul>
+     *     <li>✅ 类型安全，无 IDE 警告</li>
+     *     <li>✅ 语义清晰，明确表示返回 Map 数据</li>
+     *     <li>✅ 性能更好，直接使用 Spring JDBC 的 queryForList 方法</li>
+     * </ul>
+     *
+     * @param wrapper 查询包装器
+     * @param <T>     实体类型（用于构建查询条件）
+     * @return Map，key 为列名（列别名），value 为列值；如果没有数据则返回 null
+     *
+     * @see #listAsMap(AbstractTdQueryWrapper) 查询 Map 列表
+     * @see #getOne(AbstractTdQueryWrapper, Class) 查询并映射到实体类
+     */
+    public <T> Map<String, Object> getOneAsMap(AbstractTdQueryWrapper<T> wrapper) {
+        String sql = wrapper.getSql();
+        Map<String, Object> paramsMap = wrapper.getParamsMap();
+        tdLog(sql, paramsMap);
+        List<Map<String, Object>> list = namedParameterJdbcTemplate.queryForList(sql, paramsMap);
+        if (CollectionUtils.isEmpty(list)) {
+            return null;
+        }
+        return list.get(0);
+    }
+
 
     /**
      * 列表
@@ -129,6 +165,32 @@ public class TdTemplate {
 
     public <T, R> List<R> list(AbstractTdQueryWrapper<T> wrapper, Class<R> resultClass) {
         return listWithTdLog(wrapper.getSql(), wrapper.getParamsMap(), resultClass);
+    }
+
+    /**
+     * 查询并返回 Map 列表
+     *
+     * <p>此方法专门用于返回 {@code List<Map<String, Object>>} 类型的结果，
+     *
+     * <p>相比使用 {@code list(wrapper, Map.class)}，此方法：</p>
+     * <ul>
+     *     <li>✅ 类型安全，无 IDE 警告</li>
+     *     <li>✅ 语义清晰，明确表示返回 Map 列表</li>
+     *     <li>✅ 性能更好，直接使用 Spring JDBC 的 queryForList 方法</li>
+     * </ul>
+     *
+     * @param wrapper 查询包装器
+     * @param <T>     实体类型（用于构建查询条件）
+     * @return Map 列表，每个 Map 的 key 为列名（列别名），value 为列值
+     *
+     * @see #getOneAsMap(AbstractTdQueryWrapper) 查询单条 Map 数据
+     * @see #list(AbstractTdQueryWrapper, Class) 查询并映射到实体类
+     */
+    public <T> List<Map<String, Object>> listAsMap(AbstractTdQueryWrapper<T> wrapper) {
+        String sql = wrapper.getSql();
+        Map<String, Object> paramsMap = wrapper.getParamsMap();
+        tdLog(sql, paramsMap);
+        return namedParameterJdbcTemplate.queryForList(sql, paramsMap);
     }
 
     public <T> Page<T> page(long pageNo, long pageSize, TdQueryWrapper<T> wrapper) {
@@ -149,6 +211,26 @@ public class TdTemplate {
             page.setDataList(list);
         }
         return page;
+    }
+
+    /**
+     * 统计数据量
+     *
+     * @param wrapper 查询包装器
+     * @return 数据条数
+     */
+    public <T> Long count(AbstractTdQueryWrapper<T> wrapper) {
+        // 构建安全的计数查询SQL
+        String innerSql = wrapper.getSql();
+        String countSql = "SELECT COUNT(*) FROM (" + innerSql + ") t";
+        Map<String, Object> paramsMap = wrapper.getParamsMap();
+
+        // 记录日志
+        tdLog(countSql, paramsMap);
+
+        // 执行查询
+        Long count = namedParameterJdbcTemplate.queryForObject(countSql, paramsMap, Long.class);
+        return count != null ? count : 0L;
     }
 
     /**
@@ -275,6 +357,10 @@ public class TdTemplate {
         Map<String, Object> paramsMap = finalSqlAndParamsMapPair.getSecond();
 
         return updateWithTdLog(finalSql, paramsMap);
+    }
+
+    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList) {
+        return batchInsert(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
     }
 
 
@@ -564,32 +650,58 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-
-        // 目前仅支持同子表的数据批量插入, 所以随意取一个对象的tag的值都是一样的
         if (pageSize <= 0) {
             throw new IllegalArgumentException("Partition size must be greater than zero");
         }
-        List<List<T>> partition = ListUtils.partition(entityList, pageSize);
-        T t = partition.get(0).get(0);
 
-        List<Field> tagFields = TdSqlUtil.getExistTagFields(t.getClass());
-
-        Map<String, Object> tagValueMap = TdSqlUtil.getFiledValueMap(tagFields, t);
-        int[] result = new int[partition.size()];
-        for (int i = 0; i < partition.size(); i++) {
-            List<T> list = partition.get(i);
-            Map<String, Object> paramsMap = new HashMap<>(list.size());
-            paramsMap.putAll(tagValueMap);
-            StringBuilder finalSql = new StringBuilder(TdSqlUtil.getInsertUsingSqlPrefix(t,
-                    TdSqlUtil.getExistFields(clazz), dynamicTbNameStrategy, paramsMap));
-            joinInsetSqlSuffix(list, finalSql, paramsMap);
-            int singleResult = namedParameterJdbcTemplate.update(finalSql.toString(), paramsMap);
-            if (log.isDebugEnabled()) {
-                log.debug("{} =====execute result====>{}", finalSql, result);
-            }
-            result[i] = singleResult;
+        if (CollectionUtils.isEmpty(entityList)) {
+            return new int[0];
         }
-        return result;
+
+        // 获取TAG字段列表
+        List<Field> tagFields = TdSqlUtil.getExistTagFields(clazz);
+
+        // 按照子表名对数据进行分组，相同子表的数据（相同TAG值）放在一起
+        Map<String, List<T>> tagGroupMap = new LinkedHashMap<>();
+
+        for (T entity : entityList) {
+            // 使用动态表名策略生成子表名作为分组key
+            // 相同子表名意味着相同的TAG值组合
+            String subTableName = dynamicTbNameStrategy.getTableName(entity);
+            tagGroupMap.computeIfAbsent(subTableName, k -> new ArrayList<>()).add(entity);
+        }
+
+        // 对每个TAG组（子表）分别进行批量插入
+        List<Integer> resultList = new ArrayList<>();
+
+        for (Map.Entry<String, List<T>> entry : tagGroupMap.entrySet()) {
+            List<T> groupEntityList = entry.getValue();
+
+            // 对当前TAG组进行分页
+            List<List<T>> partition = ListUtils.partition(groupEntityList, pageSize);
+
+            // 使用该组第一个实体获取TAG值（同一组内TAG值相同）
+            T firstEntity = groupEntityList.get(0);
+            Map<String, Object> tagValueMap = TdSqlUtil.getFiledValueMap(tagFields, firstEntity);
+
+            // 对每个分页批次进行插入
+            for (List<T> list : partition) {
+                Map<String, Object> paramsMap = new HashMap<>(list.size());
+                paramsMap.putAll(tagValueMap);
+
+                StringBuilder finalSql = new StringBuilder(TdSqlUtil.getInsertUsingSqlPrefix(firstEntity,
+                        TdSqlUtil.getExistFields(clazz), dynamicTbNameStrategy, paramsMap));
+                joinInsetSqlSuffix(list, finalSql, paramsMap);
+
+                int singleResult = namedParameterJdbcTemplate.update(finalSql.toString(), paramsMap);
+                if (log.isDebugEnabled()) {
+                    log.debug("{} =====execute result====>{}", finalSql, singleResult);
+                }
+                resultList.add(singleResult);
+            }
+        }
+
+        return resultList.stream().mapToInt(Integer::intValue).toArray();
     }
 
     public <T> int deleteByTs(Class<T> clazz, Long ts) {
@@ -636,11 +748,25 @@ public class TdTemplate {
 
     private <R> List<R> listWithTdLog(String sql, Map<String, Object> paramsMap, Class<R> resultClass) {
         tdLog(sql, paramsMap);
+
+        // 不支持 Map.class，提示使用 listAsMap()
+        if (Map.class.isAssignableFrom(resultClass)) {
+            log.error("Map.class is not supported as result type! Please use listAsMap() method instead.");
+            throw new TdOrmException(TdOrmExceptionCode.MAP_TYPE_NOT_SUPPORTED);
+        }
+
         return namedParameterJdbcTemplate.query(sql, paramsMap, TdColumnRowMapper.getInstance(resultClass));
     }
 
     private <R> R getOneWithTdLog(Class<R> resultClass, String sql, Map<String, Object> paramsMap) {
         tdLog(sql, paramsMap);
+
+        // 不支持 Map.class，提示使用 getOneAsMap()
+        if (Map.class.isAssignableFrom(resultClass)) {
+            log.error("Map.class is not supported as result type! Please use getOneAsMap() method instead.");
+            throw new TdOrmException(TdOrmExceptionCode.MAP_TYPE_NOT_SUPPORTED);
+        }
+
         List<R> list = namedParameterJdbcTemplate.query(sql, paramsMap, TdColumnRowMapper.getInstance(resultClass));
         if (CollectionUtils.isEmpty(list)) {
             return null;

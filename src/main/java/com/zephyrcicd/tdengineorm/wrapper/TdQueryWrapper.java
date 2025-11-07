@@ -289,6 +289,72 @@ public class TdQueryWrapper<T> extends AbstractTdQueryWrapper<T> {
         return this;
     }
 
+    /**
+     * PARTITION BY 查询，按指定列对数据进行分区
+     * 
+     * <p>TDengine 特色功能：</p>
+     * <ul>
+     *     <li>可以和窗口函数（INTERVAL、STATE_WINDOW）一起使用</li>
+     *     <li>不能和 GROUP BY 一起使用</li>
+     *     <li>适用于超级表的多维度时序分析</li>
+     * </ul>
+     * 
+     * @param columnNames 分区列名
+     * @return TdQueryWrapper
+     */
+    public TdQueryWrapper<T> partitionBy(String... columnNames) {
+        if (columnNames == null || columnNames.length == 0) {
+            throw new TdOrmException(TdOrmExceptionCode.NO_SELECT);
+        }
+        String partitionColumns = String.join(SqlConstant.COMMA, columnNames);
+        doPartitionBy(partitionColumns);
+        return this;
+    }
+
+    /**
+     * PARTITION BY 查询，使用 Lambda 表达式指定分区列
+     * 
+     * @param getterFuncs 分区列的 getter 方法
+     * @return TdQueryWrapper
+     */
+    @SafeVarargs
+    public final TdQueryWrapper<T> partitionBy(GetterFunction<T, ?>... getterFuncs) {
+        if (getterFuncs == null || getterFuncs.length == 0) {
+            throw new TdOrmException(TdOrmExceptionCode.NO_SELECT);
+        }
+        String[] columnNames = Arrays.stream(getterFuncs)
+                .map(this::getColumnName)
+                .toArray(String[]::new);
+        return partitionBy(columnNames);
+    }
+
+    /**
+     * 选择窗口伪列 (_WSTART, _WEND, _WDURATION)
+     * 
+     * <p>TDengine 窗口查询专用伪列：</p>
+     * <ul>
+     *     <li>_WSTART: 窗口开始时间</li>
+     *     <li>_WEND: 窗口结束时间</li>
+     *     <li>_WDURATION: 窗口持续时间</li>
+     * </ul>
+     * 
+     * @return TdQueryWrapper
+     */
+    public TdQueryWrapper<T> selectWindowColumns() {
+        return select("_WSTART", "_WEND", "_WDURATION");
+    }
+
+    /**
+     * 选择表名伪列 (TBNAME)
+     * 
+     * <p>TDengine 超级表查询专用伪列，返回子表名称</p>
+     * 
+     * @return TdQueryWrapper
+     */
+    public TdQueryWrapper<T> selectTableName() {
+        return select("TBNAME");
+    }
+
 
     public TdQueryWrapper<T> stateWindow(GetterFunction<T, ?> getterFunc) {
         return stateWindow(getColumnName(getterFunc));
