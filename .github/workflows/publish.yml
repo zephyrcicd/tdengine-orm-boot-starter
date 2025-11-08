@@ -11,28 +11,31 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up JDK 8
       uses: actions/setup-java@v4
       with:
         java-version: '8'
         distribution: 'temurin'
-        server-id: central
-        server-username: MAVEN_USERNAME
-        server-password: MAVEN_CENTRAL_TOKEN
-        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-        gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-    - name: Cache Maven dependencies
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v3
+      with:
+        gradle-version: wrapper
+
+    - name: Cache Gradle dependencies
       uses: actions/cache@v4
       with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
 
     - name: Extract version from tag
       id: extract_version
@@ -42,30 +45,36 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
 
-    - name: Verify version matches pom.xml
+    - name: Verify version matches build.gradle.kts
       run: |
-        # 检查标签版本是否与 pom.xml 中的版本一致
-        POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        # 检查标签版本是否与 build.gradle.kts 中的版本一致
+        GRADLE_VERSION=$(grep "^version = " build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
         TAG_VERSION=${{ steps.extract_version.outputs.VERSION }}
-        echo "POM version: $POM_VERSION"
+        echo "Gradle version: $GRADLE_VERSION"
         echo "Tag version: $TAG_VERSION"
-        if [ "$POM_VERSION" != "$TAG_VERSION" ]; then
-          echo "Error: Version mismatch between pom.xml ($POM_VERSION) and tag ($TAG_VERSION)"
+        if [ "$GRADLE_VERSION" != "$TAG_VERSION" ]; then
+          echo "Error: Version mismatch between build.gradle.kts ($GRADLE_VERSION) and tag ($TAG_VERSION)"
           exit 1
         fi
-        echo "Version verification passed: $POM_VERSION"
+        echo "Version verification passed: $GRADLE_VERSION"
 
-    - name: Run tests
-      run: mvn clean test -DskipTests
+    - name: Make gradlew executable
+      run: chmod +x gradlew
+
+    - name: Build project
+      run: ./gradlew clean build -x test
       # 注意：由于测试需要 TDengine 数据库，这里跳过测试
       # 在实际环境中，可以配置 TDengine 服务进行完整测试
 
     - name: Publish to Maven Central
-      run: mvn clean deploy
+      run: ./gradlew publish
       env:
-        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-        MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
-        MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        CENTRAL_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+        CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+        GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        GPG_PASSWORD: ${{ secrets.GPG_PASSPHRASE }}
+        ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_PRIVATE_KEY }}
+        ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PASSPHRASE }}
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -75,7 +84,7 @@ jobs:
         name: Release ${{ steps.extract_version.outputs.VERSION }}
         body: |
           ## 📦 TDengine ORM Boot Starter ${{ steps.extract_version.outputs.VERSION }}
-          
+
           ### 🚀 Maven 依赖
           ```xml
           <dependency>
@@ -84,12 +93,23 @@ jobs:
               <version>${{ steps.extract_version.outputs.VERSION }}</version>
           </dependency>
           ```
-          
+
+          ### 🎯 Gradle 依赖 (Kotlin DSL)
+          ```kotlin
+          implementation("io.github.zephyrcicd:tdengine-orm-boot-starter:${{ steps.extract_version.outputs.VERSION }}")
+          ```
+
+          ### 📦 Gradle 依赖 (Groovy)
+          ```groovy
+          implementation 'io.github.zephyrcicd:tdengine-orm-boot-starter:${{ steps.extract_version.outputs.VERSION }}'
+          ```
+
           ### 📋 更新内容
           详细更新内容请查看提交历史。
-          
+
           ### 🔗 链接
           - [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter/${{ steps.extract_version.outputs.VERSION }})
           - [文档](https://github.com/zephyrcicd/tdengine-orm-boot-starter/blob/main/README.md)
+          - [Gradle 构建指南](https://github.com/zephyrcicd/tdengine-orm-boot-starter/blob/main/README_GRADLE.md)
         draft: false
         prerelease: false

@@ -16,17 +16,92 @@
 
 ## 快速开始
 
-1. 在你的项目 `pom.xml` 中添加依赖:
-    ```xml
-    <dependency>
-        <groupId>io.github.zephyrcicd</groupId>
-        <artifactId>tdengine-orm-boot-starter</artifactId>
-        <version>1.2.2</version>
-    </dependency>
-    ```
-2. 在 `application.yml` 中配置数据库连接
-3. 使用 `@TdTable` 和 `@TdTag` 注解创建实体类
-4. 在服务类中注入 `TdTemplate` 开始使用
+### 1. 添加依赖
+
+**Maven** - 在 `pom.xml` 中添加：
+```xml
+<!-- TDengine ORM Boot Starter -->
+<dependency>
+    <groupId>io.github.zephyrcicd</groupId>
+    <artifactId>tdengine-orm-boot-starter</artifactId>
+    <version>${tdengine-orm.version}</version>  <!-- 请查看最新版本 -->
+</dependency>
+
+<!-- TDengine JDBC 驱动（必需） -->
+<dependency>
+    <groupId>com.taosdata.jdbc</groupId>
+    <artifactId>taos-jdbcdriver</artifactId>
+    <version>${taos-jdbcdriver.version}</version>  <!-- 请根据您的 TDengine 版本选择合适的驱动版本 -->
+</dependency>
+```
+
+**Gradle Kotlin DSL** - 在 `build.gradle.kts` 中添加：
+```kotlin
+dependencies {
+    // TDengine ORM Boot Starter
+    implementation("io.github.zephyrcicd:tdengine-orm-boot-starter:${tdengineOrmVersion}")  // 请查看最新版本
+
+    // TDengine JDBC 驱动（必需）
+    implementation("com.taosdata.jdbc:taos-jdbcdriver:${taosJdbcdriverVersion}")  // 请根据您的 TDengine 版本选择
+}
+```
+
+**Gradle Groovy DSL** - 在 `build.gradle` 中添加：
+```groovy
+dependencies {
+    // TDengine ORM Boot Starter
+    implementation "io.github.zephyrcicd:tdengine-orm-boot-starter:${tdengineOrmVersion}"  // 请查看最新版本
+
+    // TDengine JDBC 驱动（必需）
+    implementation "com.taosdata.jdbc:taos-jdbcdriver:${taosJdbcdriverVersion}"  // 请根据您的 TDengine 版本选择
+}
+```
+
+> 💡 **最新版本**：请访问 [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) 或 [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) 查看最新版本（当前为 1.4.0）
+> 💡 **TDengine JDBC 驱动**：请参考 [Maven Central - taos-jdbcdriver](https://central.sonatype.com/artifact/com.taosdata.jdbc/taos-jdbcdriver) 选择与您的 TDengine 服务器版本兼容的驱动版本（如 3.2.5、3.6.3 等）
+
+### 2. 配置数据库连接
+
+在 `application.yml` 中配置 TDengine 连接信息：
+```yaml
+td-orm:
+  enabled: true
+  url: jdbc:TAOS://localhost:6030/test
+  username: root
+  password: taosdata
+  driver-class-name: com.taosdata.jdbc.TSDBDriver
+  log-level: ERROR
+```
+
+### 3. 创建实体类
+
+使用 `@TdTable` 和 `@TdTag` 注解定义实体：
+```java
+@TdTable("sensor_data")
+public class SensorData {
+    @TdTag
+    private String deviceId;
+
+    private Double temperature;
+    private Long ts;
+    // getter/setter...
+}
+```
+
+### 4. 开始使用
+
+在服务类中注入 `TdTemplate` 即可使用：
+```java
+@Service
+public class IoTDataService {
+    @Autowired
+    private TdTemplate tdTemplate;
+
+    public void saveData(SensorData data) {
+        tdTemplate.insert(data);
+    }
+}
+```
 
 ## 详细使用指南
 
@@ -41,48 +116,13 @@
 
 ### 使用方法
 
-#### 1. 添加依赖
-
-在你的项目 `pom.xml` 中添加 TDengine ORM Starter 依赖：
-
-```xml
-
-<dependency>
-    <groupId>io.github.zephyrcicd</groupId>
-    <artifactId>tdengine-orm-boot-starter</artifactId>
-    <version>1.3.0</version>
-</dependency>
-```
-
-**版本说明**:
-
-- `1.1.0`: 当前稳定版本(推荐生产环境使用)
-- 查看 [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) 获取最新版本
-
-**可选：从 JitPack 获取开发版本**
-如果需要使用最新的开发版本，可以从 JitPack 获取：
-
-```xml
-
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-
-<dependency>
-<groupId>com.github.zephyrcicd</groupId>
-<artifactId>tdengine-orm-boot-starter</artifactId>
-<version>main-SNAPSHOT</version> <!-- 最新开发版本 -->
-</dependency>
-```
-
-#### 2. 添加连接池依赖（可选）
+#### 1. 添加连接池依赖（可选）
 
 根据需要选择一个连接池：
 
-##### 使用 Druid 连接池
+##### Maven
+
+**使用 Druid 连接池**
 
 ```xml
 
@@ -93,7 +133,7 @@
 </dependency>
 ```
 
-##### 使用 HikariCP 连接池
+**使用 HikariCP 连接池**
 
 ```xml
 
@@ -104,7 +144,7 @@
 </dependency>
 ```
 
-##### 使用 Apache DBCP2 连接池
+**使用 Apache DBCP2 连接池**
 
 ```xml
 
@@ -115,9 +155,26 @@
 </dependency>
 ```
 
+##### Gradle
+
+**Kotlin DSL**：
+
+```kotlin
+dependencies {
+    // Druid
+    implementation("com.alibaba:druid:1.2.8")
+
+    // 或 HikariCP
+    implementation("com.zaxxer:HikariCP:5.0.1")
+
+    // 或 Apache DBCP2
+    implementation("org.apache.commons:commons-dbcp2:2.9.0")
+}
+```
+
 如果不添加任何连接池依赖，starter 将使用 Spring 的 DriverManagerDataSource 作为兜底方案。
 
-#### 3. 配置数据库连接
+#### 2. 配置数据库连接
 
 在 `application.yml` 或 `application.properties` 中配置 TDengine 连接信息：
 
@@ -144,7 +201,7 @@ td-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
 td-orm.log-level=ERROR
 ```
 
-#### 4. 使用 TdTemplate
+#### 3. 使用 TdTemplate
 
 在你的服务类中注入和使用 `TdTemplate`：
 
@@ -172,7 +229,7 @@ public class IoTDataService {
 }
 ```
 
-#### 5. 查看更多使用示例
+#### 4. 查看更多使用示例
 
 项目中包含了完整的使用示例代码，展示了各种插入场景的用法：
 
@@ -237,7 +294,7 @@ public class IoTDataService {
 }
 ```
 
-#### 6. 完整示例项目
+#### 5. 完整示例项目
 
 如果您想查看完整的、可运行的使用案例，请参考我们的 Demo 项目：
 
@@ -253,7 +310,7 @@ Demo 项目特点：
 
 通过运行 Demo 项目的测试用例，您可以快速了解 TdTemplate 的各种使用方式。
 
-#### 7. 注解说明
+#### 6. 注解说明
 
 该框架提供三个核心注解来定义 TDengine 实体类：
 
@@ -302,7 +359,7 @@ private String internalField;  // 不参与 SQL 生成的内部字段
 - `nullable`：是否允许为空
 - `compositeKey`：是否为复合主键（仅 TDengine 3.3+ 支持）
 
-#### 8. 实体类定义示例
+#### 7. 实体类定义示例
 
 ```java
 

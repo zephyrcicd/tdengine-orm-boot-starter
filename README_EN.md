@@ -15,17 +15,92 @@
 
 ## Quick Start
 
-1. Add dependency to your project's `pom.xml`:
-    ```xml
-    <dependency>
-        <groupId>io.github.zephyrcicd</groupId>
-        <artifactId>tdengine-orm-boot-starter</artifactId>
-        <version>1.3.0</version>
-    </dependency>
-    ```
-2. Configure database connection in `application.yml`
-3. Create entity classes with `@TdTable` and `@TdTag` annotations
-4. Inject `TdTemplate` in your service class and start using it
+### 1. Add Dependencies
+
+**Maven** - Add to `pom.xml`:
+```xml
+<!-- TDengine ORM Boot Starter -->
+<dependency>
+    <groupId>io.github.zephyrcicd</groupId>
+    <artifactId>tdengine-orm-boot-starter</artifactId>
+    <version>${tdengine-orm.version}</version>  <!-- Check for the latest version -->
+</dependency>
+
+<!-- TDengine JDBC Driver (Required) -->
+<dependency>
+    <groupId>com.taosdata.jdbc</groupId>
+    <artifactId>taos-jdbcdriver</artifactId>
+    <version>${taos-jdbcdriver.version}</version>  <!-- Choose version compatible with your TDengine server -->
+</dependency>
+```
+
+**Gradle Kotlin DSL** - Add to `build.gradle.kts`:
+```kotlin
+dependencies {
+    // TDengine ORM Boot Starter
+    implementation("io.github.zephyrcicd:tdengine-orm-boot-starter:${tdengineOrmVersion}")  // Check for the latest version
+
+    // TDengine JDBC Driver (Required)
+    implementation("com.taosdata.jdbc:taos-jdbcdriver:${taosJdbcdriverVersion}")  // Choose version compatible with your TDengine server
+}
+```
+
+**Gradle Groovy DSL** - Add to `build.gradle`:
+```groovy
+dependencies {
+    // TDengine ORM Boot Starter
+    implementation "io.github.zephyrcicd:tdengine-orm-boot-starter:${tdengineOrmVersion}"  // Check for the latest version
+
+    // TDengine JDBC Driver (Required)
+    implementation "com.taosdata.jdbc:taos-jdbcdriver:${taosJdbcdriverVersion}"  // Choose version compatible with your TDengine server
+}
+```
+
+> 💡 **Latest Version**: Check [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) or [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) for the latest version (current: 1.4.0)
+> 💡 **TDengine JDBC Driver**: Please refer to [Maven Central - taos-jdbcdriver](https://central.sonatype.com/artifact/com.taosdata.jdbc/taos-jdbcdriver) and choose a version compatible with your TDengine server (e.g., 3.2.5, 3.6.3, etc.)
+
+### 2. Configure Database Connection
+
+Configure TDengine connection in `application.yml`:
+```yaml
+td-orm:
+  enabled: true
+  url: jdbc:TAOS://localhost:6030/test
+  username: root
+  password: taosdata
+  driver-class-name: com.taosdata.jdbc.TSDBDriver
+  log-level: ERROR
+```
+
+### 3. Create Entity Class
+
+Define entity with `@TdTable` and `@TdTag` annotations:
+```java
+@TdTable("sensor_data")
+public class SensorData {
+    @TdTag
+    private String deviceId;
+
+    private Double temperature;
+    private Long ts;
+    // getter/setter...
+}
+```
+
+### 4. Start Using
+
+Inject `TdTemplate` in your service class:
+```java
+@Service
+public class IoTDataService {
+    @Autowired
+    private TdTemplate tdTemplate;
+
+    public void saveData(SensorData data) {
+        tdTemplate.insert(data);
+    }
+}
+```
 
 ## Detailed Usage Guide
 
@@ -40,45 +115,13 @@ The starter supports the following connection pools, listed in order of priority
 
 ### Usage Steps
 
-#### 1. Add Dependencies
-
-Add TDengine ORM Starter dependency to your project's `pom.xml`:
-
-```xml
-<dependency>
-    <groupId>io.github.zephyrcicd</groupId>
-    <artifactId>tdengine-orm-boot-starter</artifactId>
-    <version>1.1.0</version>
-</dependency>
-```
-
-**Version Notes**:
-- `1.1.0`: Current stable version (recommended for production)
-- Check [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) for the latest version
-
-**Optional: Get Development Version from JitPack**
-If you need the latest development version, you can get it from JitPack:
-
-```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-
-<dependency>
-    <groupId>com.github.zephyrcicd</groupId>
-    <artifactId>tdengine-orm-boot-starter</artifactId>
-    <version>main-SNAPSHOT</version> <!-- Latest development version -->
-</dependency>
-```
-
-#### 2. Add Connection Pool Dependency (Optional)
+#### 1. Add Connection Pool Dependency (Optional)
 
 Choose a connection pool based on your needs:
 
-##### Using Druid Connection Pool
+##### Maven
+
+**Using Druid Connection Pool**
 ```xml
 <dependency>
     <groupId>com.alibaba</groupId>
@@ -87,7 +130,7 @@ Choose a connection pool based on your needs:
 </dependency>
 ```
 
-##### Using HikariCP Connection Pool
+**Using HikariCP Connection Pool**
 ```xml
 <dependency>
     <groupId>com.zaxxer</groupId>
@@ -96,7 +139,7 @@ Choose a connection pool based on your needs:
 </dependency>
 ```
 
-##### Using Apache DBCP2 Connection Pool
+**Using Apache DBCP2 Connection Pool**
 ```xml
 <dependency>
     <groupId>org.apache.commons</groupId>
@@ -105,9 +148,26 @@ Choose a connection pool based on your needs:
 </dependency>
 ```
 
+##### Gradle
+
+**Kotlin DSL**:
+
+```kotlin
+dependencies {
+    // Druid
+    implementation("com.alibaba:druid:1.2.8")
+
+    // or HikariCP
+    implementation("com.zaxxer:HikariCP:5.0.1")
+
+    // or Apache DBCP2
+    implementation("org.apache.commons:commons-dbcp2:2.9.0")
+}
+```
+
 If no connection pool dependency is added, the starter will use Spring's DriverManagerDataSource as a fallback.
 
-#### 3. Configure Database Connection
+#### 2. Configure Database Connection
 
 Configure TDengine connection information in `application.yml` or `application.properties`:
 
@@ -132,7 +192,7 @@ td-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
 td-orm.log-level=ERROR
 ```
 
-#### 4. Using TdTemplate
+#### 3. Using TdTemplate
 
 Inject and use `TdTemplate` in your service class:
 
@@ -159,7 +219,7 @@ public class IoTDataService {
 }
 ```
 
-#### 5. More Usage Examples
+#### 4. More Usage Examples
 
 The project includes comprehensive usage examples demonstrating various insertion scenarios:
 
@@ -221,7 +281,7 @@ public class IoTDataService {
 }
 ```
 
-#### 6. Complete Example Project
+#### 5. Complete Example Project
 
 If you want to see complete, runnable usage examples, please check out our Demo project:
 
@@ -236,7 +296,7 @@ Demo Project Features:
 
 By running the Demo project's test cases, you can quickly understand the various usage patterns of TdTemplate.
 
-#### 7. Annotation Guide
+#### 6. Annotation Guide
 
 The framework provides three core annotations to define TDengine entity classes:
 
@@ -275,7 +335,7 @@ private String internalField;  // Internal field excluded from SQL generation
 - `nullable`: Whether field allows null values
 - `compositeKey`: Whether field is composite primary key (TDengine 3.3+ only)
 
-#### 8. Entity Class Example
+#### 7. Entity Class Example
 
 ```java
 @TdTable("sensor_data")
