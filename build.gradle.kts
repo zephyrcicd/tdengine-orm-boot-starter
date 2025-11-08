@@ -145,8 +145,9 @@ publishing {
 // GPG Signing
 signing {
     // 使用环境变量或 gradle.properties 中的配置
-    val signingKey = findProperty("signing.keyId") as String? ?: System.getenv("GPG_KEY_ID")
-    val signingPassword = findProperty("signing.password") as String? ?: System.getenv("GPG_PASSWORD")
+    // 注意：signingKey 应该是完整的 PGP 私钥内容，不是 keyId
+    val signingKey = findProperty("signingKey") as String?
+    val signingPassword = findProperty("signingPassword") as String?
 
     if (signingKey != null && signingPassword != null) {
         useInMemoryPgpKeys(signingKey, signingPassword)
