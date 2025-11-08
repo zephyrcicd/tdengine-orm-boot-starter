@@ -1,10 +1,19 @@
+### Maven ###
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Gradle ###
+.gradle/
+!gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
 ### IntelliJ IDEA ###
 .idea
+*.iml
+*.iws
+*.ipr
 
 ### Eclipse ###
 .apt_generated
