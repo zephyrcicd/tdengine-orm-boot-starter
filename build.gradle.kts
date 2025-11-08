@@ -4,10 +4,9 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 plugins {
     java
     `java-library`
-    `maven-publish`
-    signing
     kotlin("jvm") version "1.9.22"
     kotlin("plugin.spring") version "1.9.22"
+    id("com.vanniktech.maven.publish") version "0.30.0"
 }
 
 // Project information (group, version) is defined in gradle.properties
@@ -15,8 +14,8 @@ plugins {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
-    withSourcesJar()
-    withJavadocJar()
+    // vanniktech 插件会自动处理 sources jar 和 javadoc jar
+    // 移除 withSourcesJar() 和 withJavadocJar() 避免冲突
 }
 
 repositories {
@@ -90,67 +89,40 @@ tasks {
     }
 }
 
-// Maven Central Publishing Configuration
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
+// Maven Central Publishing Configuration using vanniktech plugin
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
 
-            groupId = project.group.toString()
-            artifactId = project.name
-            version = project.version.toString()
+    coordinates(project.group.toString(), project.name, project.version.toString())
 
-            pom {
-                name.set("TDengine ORM Boot Starter")
-                description.set("A Spring Boot Starter providing a semi-ORM framework for TDengine time-series database operations")
-                url.set("https://github.com/zephyrcicd/tdengine-orm-boot-starter")
+    pom {
+        name.set("TDengine ORM Boot Starter")
+        description.set("A Spring Boot Starter providing a semi-ORM framework for TDengine time-series database operations")
+        inceptionYear.set("2024")
+        url.set("https://github.com/zephyrcicd/tdengine-orm-boot-starter")
 
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                        distribution.set("repo")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set("zephyrcicd")
-                        name.set("zephyr")
-                        url.set("https://github.com/zephyrcicd")
-                    }
-                }
-
-                scm {
-                    connection.set("scm:git:git://github.com/zephyrcicd/tdengine-orm-boot-starter.git")
-                    developerConnection.set("scm:git:ssh://github.com:zephyrcicd/tdengine-orm-boot-starter.git")
-                    url.set("https://github.com/zephyrcicd/tdengine-orm-boot-starter/tree/main")
-                }
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/licenses/MIT")
+                distribution.set("repo")
             }
         }
-    }
 
-    repositories {
-        maven {
-            name = "central"
-            url = uri("https://central.sonatype.com/api/v1/publisher/deployments/download/")
-            credentials {
-                username = findProperty("centralUsername") as String? ?: System.getenv("CENTRAL_USERNAME")
-                password = findProperty("centralPassword") as String? ?: System.getenv("CENTRAL_PASSWORD")
+        developers {
+            developer {
+                id.set("zephyrcicd")
+                name.set("zephyr")
+                url.set("https://github.com/zephyrcicd")
             }
         }
-    }
-}
 
-// GPG Signing
-signing {
-    // 使用环境变量或 gradle.properties 中的配置
-    val signingKey = findProperty("signing.keyId") as String? ?: System.getenv("GPG_KEY_ID")
-    val signingPassword = findProperty("signing.password") as String? ?: System.getenv("GPG_PASSWORD")
-
-    if (signingKey != null && signingPassword != null) {
-        useInMemoryPgpKeys(signingKey, signingPassword)
-        sign(publishing.publications["mavenJava"])
+        scm {
+            url.set("https://github.com/zephyrcicd/tdengine-orm-boot-starter")
+            connection.set("scm:git:git://github.com/zephyrcicd/tdengine-orm-boot-starter.git")
+            developerConnection.set("scm:git:ssh://git@github.com/zephyrcicd/tdengine-orm-boot-starter.git")
+        }
     }
 }
 

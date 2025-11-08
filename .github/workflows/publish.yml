@@ -16,10 +16,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up JDK 8
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: '8'
+        java-version: '17'
         distribution: 'temurin'
 
     - name: Setup Gradle
@@ -45,15 +45,15 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
 
-    - name: Verify version matches build.gradle.kts
+    - name: Verify version matches gradle.properties
       run: |
-        # 检查标签版本是否与 build.gradle.kts 中的版本一致
-        GRADLE_VERSION=$(grep "^version = " build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
+        # 检查标签版本是否与 gradle.properties 中的版本一致
+        GRADLE_VERSION=$(grep "^version=" gradle.properties | cut -d'=' -f2)
         TAG_VERSION=${{ steps.extract_version.outputs.VERSION }}
         echo "Gradle version: $GRADLE_VERSION"
         echo "Tag version: $TAG_VERSION"
         if [ "$GRADLE_VERSION" != "$TAG_VERSION" ]; then
-          echo "Error: Version mismatch between build.gradle.kts ($GRADLE_VERSION) and tag ($TAG_VERSION)"
+          echo "Error: Version mismatch between gradle.properties ($GRADLE_VERSION) and tag ($TAG_VERSION)"
           exit 1
         fi
         echo "Version verification passed: $GRADLE_VERSION"
@@ -67,14 +67,13 @@ jobs:
       # 在实际环境中，可以配置 TDengine 服务进行完整测试
 
     - name: Publish to Maven Central
-      run: ./gradlew publish
+      run: ./gradlew publishToMavenCentral --no-configuration-cache
       env:
-        CENTRAL_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-        CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
-        GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-        GPG_PASSWORD: ${{ secrets.GPG_PASSPHRASE }}
-        ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_PRIVATE_KEY }}
-        ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PASSPHRASE }}
+        ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+        ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+        ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
+        ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE }}
+        ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
