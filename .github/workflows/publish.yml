@@ -62,12 +62,12 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build project
-      run: ./gradlew clean build -x test
+      run: ./gradlew clean build -x test --info
       # 注意：由于测试需要 TDengine 数据库，这里跳过测试
       # 在实际环境中，可以配置 TDengine 服务进行完整测试
 
     - name: Publish to Maven Central
-      run: ./gradlew publishToMavenCentral --no-configuration-cache
+      run: ./gradlew publishToMavenCentral --no-configuration-cache --stacktrace --info
       env:
         ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
         ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_TOKEN }}

@@ -14,8 +14,8 @@ plugins {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
-    withSourcesJar()
-    withJavadocJar()
+    // vanniktech 插件会自动处理 sources jar 和 javadoc jar
+    // 移除 withSourcesJar() 和 withJavadocJar() 避免冲突
 }
 
 repositories {
