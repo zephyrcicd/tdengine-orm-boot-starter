@@ -219,69 +219,7 @@ public class IoTDataService {
 }
 ```
 
-#### 4. More Usage Examples
-
-The project includes comprehensive usage examples demonstrating various insertion scenarios:
-
-**Example Code Location**: `src/test/java/com/zephyrcicd/tdengineorm/template/TdTemplateInsertExamples.java`
-
-**Included Examples**:
-- Example 0: Create super table using TdTemplate
-- Example 1-2: Basic insert operations (normal table, super table)
-- Example 3-4: Dynamic table name strategy insert (entity-based, Map-based)
-- Example 5: USING syntax insert (auto-create sub-table)
-- Example 6-7: Batch insert to different sub-tables (default/custom batch size)
-- Example 8-10: Batch USING insert (default/custom strategy/custom batch size)
-- Example 11-12: Complex scenarios (time-based partitioning, Lambda expressions)
-- Example 13-14: Batch insert Map data (specified table, strategy-based table)
-
-**Important Notes**:
-- These are pure example code, not runnable test classes
-- Please refer to these examples in your Spring Boot project
-- In actual use, inject `TdTemplate` via `@Autowired`
-
-**Usage Examples in Your Project**:
-
-```java
-@Service
-public class IoTDataService {
-
-    @Autowired
-    private TdTemplate tdTemplate;
-
-    // Refer to example methods and use tdTemplate directly
-    public void saveData(SensorData data) {
-        // Example 1: Basic insert
-        tdTemplate.insert(data);
-
-        // Example 3: Dynamic table name insert
-        DynamicNameStrategy<SensorData> strategy = entity ->
-            "sensor_" + entity.getDeviceId();
-        tdTemplate.insert(strategy, data);
-
-        // Example 5: USING syntax insert (auto-create sub-table)
-        tdTemplate.insertUsing(data, strategy);
-    }
-
-    public void batchSaveData(List<SensorData> dataList) {
-        // Example 6: Batch insert to different sub-tables
-        DynamicNameStrategy<SensorData> strategy = entity ->
-            "sensor_" + entity.getDeviceId();
-        tdTemplate.batchInsert(SensorData.class, dataList, strategy);
-    }
-
-    public void batchSaveMapData(List<Map<String, Object>> dataList) {
-        // Example 13: Batch insert Map data to specified table
-        tdTemplate.batchInsert("sensor_device001", dataList);
-
-        // Example 14: Batch insert Map data to different tables (using strategy)
-        DynamicNameStrategy<Map<String, Object>> strategy = map -> "sensor_" + map.get("device_id");
-        tdTemplate.batchInsert(dataList, strategy);
-    }
-}
-```
-
-#### 5. Complete Example Project
+#### 4. Complete Example Project
 
 If you want to see complete, runnable usage examples, please check out our Demo project:
 
@@ -296,7 +234,7 @@ Demo Project Features:
 
 By running the Demo project's test cases, you can quickly understand the various usage patterns of TdTemplate.
 
-#### 6. Annotation Guide
+#### 5. Annotation Guide
 
 The framework provides three core annotations to define TDengine entity classes:
 
@@ -335,7 +273,7 @@ private String internalField;  // Internal field excluded from SQL generation
 - `nullable`: Whether field allows null values
 - `compositeKey`: Whether field is composite primary key (TDengine 3.3+ only)
 
-#### 7. Entity Class Example
+#### 6. Entity Class Example
 
 ```java
 @TdTable("sensor_data")
@@ -486,22 +424,23 @@ public class Application {
 3. Advanced connection pool configurations can be overridden by custom DataSource Bean
 4. This starter is compatible with Spring Boot's auto-configuration and won't cause conflicts
 
-### Maven Build Instructions
+### Build Instructions
 
-Since the test code requires an actual TDengine database connection, it's recommended to skip tests when building the project:
+This project uses Gradle for build and publication. Common commands:
 
 ```bash
-# Package skipping tests
-mvn clean package -DskipTests
+# Clean and build (with tests)
+./gradlew clean build
 
-# Install to local repository skipping tests
-mvn clean install -DskipTests
+# Assemble artifacts only (skip running tests)
+./gradlew clean assemble
+
+# Publish to local Maven repository
+./gradlew publishToMavenLocal
+
+# Inspect dependency tree
+./gradlew dependencies
 ```
-
-If you need to run tests, ensure:
-1. TDengine service is running
-2. Database connection information in configuration files is correct
-3. Test database is created with appropriate permissions
 
 ## Contribution & Support
 
@@ -520,4 +459,3 @@ If this project helps you, please give us a Star! Your support motivates us to k
 [![GitHub stars](https://img.shields.io/github/stars/zephyrcicd/tdengine-orm-boot-starter.svg?style=social&label=Star)](https://github.com/zephyrcicd/tdengine-orm-boot-starter)
 
 [![Star History Chart](https://api.star-history.com/svg?repos=zephyrcicd/tdengine-orm-boot-starter&type=Date)](https://star-history.com/#zephyrcicd/tdengine-orm-boot-starter&Date)
-

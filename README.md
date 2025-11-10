@@ -229,72 +229,7 @@ public class IoTDataService {
 }
 ```
 
-#### 4. 查看更多使用示例
-
-项目中包含了完整的使用示例代码，展示了各种插入场景的用法：
-
-**示例代码位置**: `src/test/java/com/zephyrcicd/tdengineorm/template/TdTemplateInsertExamples.java`
-
-**包含的示例**:
-
-- 示例0: 使用TdTemplate创建超级表
-- 示例1-2: 基础插入操作（普通表、超级表）
-- 示例3-4: 动态表名策略插入（基于实体、基于Map）
-- 示例5: USING语法插入（自动创建子表）
-- 示例6-7: 批量插入到不同子表（默认/自定义批次大小）
-- 示例8-10: 批量USING插入（默认/自定义策略/自定义批次）
-- 示例11-12: 复杂场景（时间分表、Lambda表达式）
-- 示例13-14: 批量插入Map数据（指定表名、策略表名）
-
-**重要说明**:
-
-- 这些是纯示例代码，不是可运行的测试类
-- 请在您的Spring Boot项目中参考这些示例
-- 实际使用时，通过`@Autowired`注入`TdTemplate`即可
-
-**在您的项目中使用示例**:
-
-```java
-
-@Service
-public class IoTDataService {
-
-    @Autowired
-    private TdTemplate tdTemplate;
-
-    // 参考示例代码中的方法，直接使用 tdTemplate
-    public void saveData(SensorData data) {
-        // 示例1: 基础插入
-        tdTemplate.insert(data);
-
-        // 示例3: 动态表名插入
-        DynamicNameStrategy<SensorData> strategy = entity ->
-                "sensor_" + entity.getDeviceId();
-        tdTemplate.insert(strategy, data);
-
-        // 示例5: USING语法插入（自动创建子表）
-        tdTemplate.insertUsing(data, strategy);
-    }
-
-    public void batchSaveData(List<SensorData> dataList) {
-        // 示例6: 批量插入到不同子表
-        DynamicNameStrategy<SensorData> strategy = entity ->
-                "sensor_" + entity.getDeviceId();
-        tdTemplate.batchInsert(SensorData.class, dataList, strategy);
-    }
-
-    public void batchSaveMapData(List<Map<String, Object>> dataList) {
-        // 示例13: 批量插入Map数据到指定表
-        tdTemplate.batchInsert("sensor_device001", dataList);
-
-        // 示例14: 批量插入Map数据到不同表（使用策略）
-        DynamicNameStrategy<Map<String, Object>> strategy = map -> "sensor_" + map.get("device_id");
-        tdTemplate.batchInsert(dataList, strategy);
-    }
-}
-```
-
-#### 5. 完整示例项目
+#### 4. 完整示例项目
 
 如果您想查看完整的、可运行的使用案例，请参考我们的 Demo 项目：
 
@@ -310,7 +245,7 @@ Demo 项目特点：
 
 通过运行 Demo 项目的测试用例，您可以快速了解 TdTemplate 的各种使用方式。
 
-#### 6. 注解说明
+#### 5. 注解说明
 
 该框架提供三个核心注解来定义 TDengine 实体类：
 
@@ -359,7 +294,7 @@ private String internalField;  // 不参与 SQL 生成的内部字段
 - `nullable`：是否允许为空
 - `compositeKey`：是否为复合主键（仅 TDengine 3.3+ 支持）
 
-#### 7. 实体类定义示例
+#### 6. 实体类定义示例
 
 ```java
 
@@ -520,23 +455,23 @@ public class Application {
 3. 连接池的高级配置可以通过自定义 DataSource Bean 来覆盖默认配置
 4. 该 starter 与 Spring Boot 的自动配置兼容，不会冲突
 
-### Maven 构建说明
+### 构建说明
 
-由于测试代码需要实际的 TDengine 数据库连接，在打包项目时建议跳过测试：
+本项目已使用 Gradle 进行构建与发布，常用命令如下：
 
 ```bash
-# 跳过测试打包
-mvn clean package -DskipTests
+# 清理与构建（包含测试）
+./gradlew clean build
 
-# 或者跳过测试安装到本地仓库
-mvn clean install -DskipTests
+# 仅打包产物（assemble，不运行测试）
+./gradlew clean assemble
+
+# 发布到本地 Maven 仓库
+./gradlew publishToMavenLocal
+
+# 查看依赖树
+./gradlew dependencies
 ```
-
-如果需要运行测试，请确保：
-
-1. TDengine 服务正在运行
-2. 配置文件中的数据库连接信息正确
-3. 测试数据库已创建并有相应权限
 
 ## 贡献与支持
 
