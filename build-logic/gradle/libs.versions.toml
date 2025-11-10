@@ -76,7 +76,7 @@ flyway = "11.12.0"
 # 本项目安卓应用版本定义
 android-biz-version = "1.0"
 
-android-minSdk = "24"
+android-minSdk = "25"
 android-targetSdk = "35"
 android-compileSdk = "36"
 androidGradlePlugin = "8.11.1"
