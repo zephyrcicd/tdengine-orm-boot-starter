@@ -1,0 +1,265 @@
+[versions]
+# 大发版 稳定版本
+#addzero-lib = "2025.09.29"
+addzero-lib = "0.0.672"
+#addzeroGradleToolVersion ="0.0.652"
+addzeroGradleToolVersion ="+"
+addzeroKspBuddyVersion="2025.09.26"
+addzeroPublishBuddyVersion="2025.09.26"
+addzeroJvmVersion="0.0.657"
+comCodingfelineBuildkonfigGradlePlugin = "0.17.1"
+hivemqMqttClientVersion = "1.3.9"
+jdk = "8"
+#https://central.sonatype.com/artifact/org.jetbrains.kotlin.jvm/org.jetbrains.kotlin.jvm.gradle.plugin
+#kotlin = "2.2.0"
+# https://central.sonatype.com/artifact/com.google.devtools.ksp/com.google.devtools.ksp.gradle.plugin
+#ksp = "2.2.0-2.0.2"
+
+#kotlin = "2.1.20"
+#ksp = "2.1.20+"
+
+kotlin = "2.2.21"
+ksp = "2.2.21-2.0.4"
+com-diffplug-spotless = "8.0.0"
+
+# 本项目安卓应用版本定义
+androidx-activity = "1.10.1"
+androidx-appcompat = "1.7.1"
+androidx-core = "1.17.0"
+androidx-espresso = "3.7.0"
+androidx-testExt = "1.3.0"
+composeHotReload = "1.0.0-beta07"
+composeMultiplatform = "1.9.0"
+junit = "4.13.2"
+kotlinx-serialization = "1.9.0"
+filekitCompose = "0.8.8"
+hutoolAll = "5.8.40"
+fastjson2Kotlin = "2.0.59"
+jackson = "2.18.2"
+okhttp = "4.12.0"
+slf4j = "2.0.16"
+minio = "8.5.17"
+orgGraalvmBuildtoolsNativeGradlePluginVersion = "0.11.0"
+saToken = "1.44.0"
+fastexcel = "1.3.0"
+
+pinyin4j = "2.5.1"
+
+
+kotlinx-coroutines = "1.10.2"
+ktor = "3.2.3"
+logback = "1.5.18"
+dokkaGradlePlugin = "2.0.0"
+composeGradlePlugin = "1.9.0"
+gradleMavenPublishPlugin = "0.34.0"
+dependencyManagementPlugin = "1.1.7"
+snakeyaml = "2.5"
+springBootGradlePlugin = "2.5.14"
+mybatisPlus = "3.5.3.1"
+
+
+postgresql = "42.7.7"
+h2 = "2.3.232"
+mysqlConnector = "8.0.33"
+kotlinpoetKsp = "2.2.0"
+jimmer = "0.9.110"
+springAi = "1.0.1"
+velocity = "1.7"
+xFileStorage = "2.3.0"
+damengJdbc = "8.1.3.140"
+tomlj = "1.1.1"
+aspectjweaver = "1.9.24"
+flyway = "11.12.0"
+
+
+
+# 本项目安卓应用版本定义
+android-biz-version = "1.0"
+
+android-minSdk = "24"
+android-targetSdk = "35"
+android-compileSdk = "36"
+androidGradlePlugin = "8.11.1"
+ktorfitGradlePlugin = "2.6.4"
+org-projectlombok-lombok = "1.18.30"
+# CLI 版本
+kotlinx-cli = "0.3.6"
+# Koin 版本
+koin = "4.1.1"
+koinAnnotations = "2.2.0"
+
+# Android Lifecycle 版本
+androidx-lifecycle = "2.9.3"
+kotlinxDatetime = "0.7.1-0.6.x-compat"
+
+coil = "3.3.0"
+[libraries]
+
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+
+
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+
+logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+ktorfit-lib = { module = "de.jensklingenberg.ktorfit:ktorfit-lib", version.ref = "ktorfitGradlePlugin" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+
+
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+
+
+
+org-projectlombok-lombok = { module = "org.projectlombok:lombok", version.ref = "org-projectlombok-lombok" }
+
+com-diffplug-spotless-com-diffplug-spotless-gradle-plugin = { module = "com.diffplug.spotless:com.diffplug.spotless.gradle.plugin", version.ref = "com-diffplug-spotless" }
+
+
+gradlePlugin-jetbrainsCompose = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "composeGradlePlugin" }
+
+ksp-symbol-processing-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp"}
+
+gradlePlugin-android = { module = "com.android.tools.build:gradle", version.ref = "androidGradlePlugin" }
+
+gradlePlugin-composeCompiler = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
+gradlePlugin-ktorfit = { module = "de.jensklingenberg.ktorfit:de.jensklingenberg.ktorfit.gradle.plugin", version.ref = "ktorfitGradlePlugin" }
+gradlePlugin-buildkonfig = { module = "com.codingfeline.buildkonfig:buildkonfig-gradle-plugin", version.ref = "comCodingfelineBuildkonfigGradlePlugin" }
+gradlePlugin-buildkonfig-cp = { module = "com.codingfeline.buildkonfig:buildkonfig-compiler", version.ref = "comCodingfelineBuildkonfigGradlePlugin" }
+
+hivemq-mqtt-client = { module = "com.hivemq:hivemq-mqtt-client", version.ref = "hivemqMqttClientVersion" }
+kotlinx-cli = { module = "org.jetbrains.kotlinx:kotlinx-cli", version.ref = "kotlinx-cli" }
+
+addzero-gradle-tool = { module = "site.addzero:addzero-gradle-tool", version.ref = "addzeroGradleToolVersion" }
+
+
+# Koin 依赖注入
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koinAnnotations" }
+# Koin KSP 编译器
+koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koinAnnotations" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+koin-compose-viewmodel-navigation = { module = "io.insert-koin:koin-compose-viewmodel-navigation", version.ref = "koin" }
+
+
+kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+
+aspectjweaver = { module = "org.aspectj:aspectjweaver", version.ref = "aspectjweaver" }
+
+org-graalvm-buildtools-native-gradle-plugin = { module = "org.graalvm.buildtools.native:org.graalvm.buildtools.native.gradle.plugin", version.ref = "orgGraalvmBuildtoolsNativeGradlePluginVersion" }
+tomlj = { module = "org.tomlj:tomlj", version.ref = "tomlj" }
+dameng-jdbc-driver = { module = "com.dameng:DmJdbcDriver18", version.ref = "damengJdbc" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
+
+jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+# HTTP和日志依赖
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
+spring-boot-starter-thymeleaf = { module = "org.springframework.boot:spring-boot-starter-thymeleaf" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+
+spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
+velocity = { module = "org.apache.velocity:velocity", version.ref = "velocity" }
+x-file-storage-spring = { module = "org.dromara.x-file-storage:x-file-storage-spring", version.ref = "xFileStorage" }
+byte-buddy = { module = "net.bytebuddy:byte-buddy" }
+spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
+jimmer-spring-boot-starter = { module = "org.babyfish.jimmer:jimmer-spring-boot-starter", version.ref = "jimmer" }
+jimmer-sql-kotlin = { module = "org.babyfish.jimmer:jimmer-sql-kotlin", version.ref = "jimmer" }
+jimmer-ksp = { module = "org.babyfish.jimmer:jimmer-ksp", version.ref = "jimmer" }
+kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoetKsp" }
+
+h2 = { group = "com.h2database", name = "h2", version.ref = "h2" }
+mysql-connector-java = { module = "mysql:mysql-connector-java", version.ref = "mysqlConnector" }
+
+pinyin4j = { module = "com.belerweb:pinyin4j", version.ref = "pinyin4j" }
+postgresql-driver = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+
+
+jakarta-servlet-api = { module = "jakarta.servlet:jakarta.servlet-api" }
+javax-servlet-api = { module = "javax.servlet:javax.servlet-api" }
+spring-webmvc = { module = "org.springframework:spring-webmvc" }
+
+fastjson2-kotlin = { module = "com.alibaba.fastjson2:fastjson2-kotlin", version.ref = "fastjson2Kotlin" }
+
+hutool-all = { module = "cn.hutool:hutool-all", version.ref = "hutoolAll" }
+# Hutool 细粒度模块依赖
+hutool-core = { module = "cn.hutool:hutool-core", version.ref = "hutoolAll" }
+hutool-extra = { module = "cn.hutool:hutool-extra", version.ref = "hutoolAll" }
+hutool-aop = { module = "cn.hutool:hutool-aop", version.ref = "hutoolAll" }
+hutool-crypto = { module = "cn.hutool:hutool-crypto", version.ref = "hutoolAll" }
+hutool-db = { module = "cn.hutool:hutool-db", version.ref = "hutoolAll" }
+hutool-http = { module = "cn.hutool:hutool-http", version.ref = "hutoolAll" }
+hutool-json = { module = "cn.hutool:hutool-json", version.ref = "hutoolAll" }
+hutool-system = { module = "cn.hutool:hutool-system", version.ref = "hutoolAll" }
+hutool-cron = { module = "cn.hutool:hutool-cron", version.ref = "hutoolAll" }
+hutool-cache = { module = "cn.hutool:hutool-cache", version.ref = "hutoolAll" }
+hutool-poi = { module = "cn.hutool:hutool-poi", version.ref = "hutoolAll" }
+hutool-script = { module = "cn.hutool:hutool-script", version.ref = "hutoolAll" }
+hutool-log = { module = "cn.hutool:hutool-log", version.ref = "hutoolAll" }
+hutool-setting = { module = "cn.hutool:hutool-setting", version.ref = "hutoolAll" }
+hutool-socket = { module = "cn.hutool:hutool-socket", version.ref = "hutoolAll" }
+hutool-jwt = { module = "cn.hutool:hutool-jwt", version.ref = "hutoolAll" }
+hutool-captcha = { module = "cn.hutool:hutool-captcha", version.ref = "hutoolAll" }
+hutool-dfa = { module = "cn.hutool:hutool-dfa", version.ref = "hutoolAll" }
+hutool-bloomFilter = { module = "cn.hutool:hutool-bloomFilter", version.ref = "hutoolAll" }
+snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
+spring-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBootGradlePlugin" }
+
+minio = { module = "io.minio:minio", version.ref = "minio" }
+fastexcel = { module = "cn.idev.excel:fastexcel", version.ref = "fastexcel" }
+
+gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokkaGradlePlugin" }
+gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "gradleMavenPublishPlugin" }
+#gradlePlugin-paparazzi = { module = "app.cash.paparazzi:paparazzi-gradle-plugin", version.ref = "paparazzi" }
+#gradlePlugin-roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi-gradle-plugin", version.ref = "roborazzi" }
+
+# 添加缺失的 buildSrc 依赖
+gradlePlugin-kotlinSerialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+gradlePlugin-ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
+gradlePlugin-kotlinSpring = { module = "org.jetbrains.kotlin.plugin.spring:org.jetbrains.kotlin.plugin.spring.gradle.plugin", version.ref = "kotlin" }
+gradlePlugin-dependencyManagement = { module = "io.spring.gradle:dependency-management-plugin", version.ref = "dependencyManagementPlugin" }
+
+gradlePlugin-springBoot = { module = "org.springframework.boot:org.springframework.boot.gradle.plugin", version.ref = "springBootGradlePlugin" }
+
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+
+spring-ai-bom = { group = "org.springframework.ai", name = "spring-ai-bom", version.ref = "springAi" }
+spring-ai-deepseek = { group = "org.springframework.ai", name = "spring-ai-starter-model-deepseek", version.ref = "springAi" }
+
+
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+junit = { module = "junit:junit", version.ref = "junit" }
+kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+
+mybatis-plus-annotation = { module = "com.baomidou:mybatis-plus-annotation", version.ref = "mybatisPlus" }
+mybatis-plus-generator = { module = "com.baomidou:mybatis-plus-generator", version.ref = "mybatisPlus" }
+
+[plugins]
+addzeroKspBuddy = { id = "site.addzero.ksp-buddy", version.ref = "addzeroKspBuddyVersion" }
+addzeroPublishBuddy = { id = "site.addzero.publish-buddy", version.ref = "addzeroPublishBuddyVersion" }
+addzeroPublishBuddyNew = { id = "publish.publish-buddy", version.ref = "addzeroJvmVersion" }
+addzeroVersionBuddy= { id = "version-buddy", version.ref = "addzeroJvmVersion" }
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+konfig = { id = "com.codingfeline.buildkonfig", version.ref = "comCodingfelineBuildkonfigGradlePlugin" }

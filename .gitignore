@@ -44,3 +44,4 @@ build/
 AGENTS.md
 CLAUDE.md
 .claude
+/build-logic/.kotlin
