@@ -56,7 +56,7 @@ dependencies {
 }
 ```
 
-> 💡 **Latest Version**: Check [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) or [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) for the latest version (current: 1.4.0)
+> 💡 **Latest Version**: Check [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) or [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) for the latest version
 > 💡 **TDengine JDBC Driver**: Please refer to [Maven Central - taos-jdbcdriver](https://central.sonatype.com/artifact/com.taosdata.jdbc/taos-jdbcdriver) and choose a version compatible with your TDengine server (e.g., 3.2.5, 3.6.3, etc.)
 
 ### 2. Configure Database Connection

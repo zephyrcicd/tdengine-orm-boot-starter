@@ -57,7 +57,7 @@ dependencies {
 }
 ```
 
-> 💡 **最新版本**：请访问 [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) 或 [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) 查看最新版本（当前为 1.4.0）
+> 💡 **最新版本**：请访问 [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) 或 [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) 查看最新版本
 > 💡 **TDengine JDBC 驱动**：请参考 [Maven Central - taos-jdbcdriver](https://central.sonatype.com/artifact/com.taosdata.jdbc/taos-jdbcdriver) 选择与您的 TDengine 服务器版本兼容的驱动版本（如 3.2.5、3.6.3 等）
 
 ### 2. 配置数据库连接

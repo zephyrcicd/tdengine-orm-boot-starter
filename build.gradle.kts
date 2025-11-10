@@ -1,6 +1,3 @@
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.api.tasks.testing.logging.TestLogEvent
-
 plugins {
     java
     `java-library`
@@ -34,8 +31,6 @@ dependencies {
     // Lombok
     compileOnly("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
-    testCompileOnly("org.projectlombok:lombok:1.18.30")
-    testAnnotationProcessor("org.projectlombok:lombok:1.18.30")
 
     // Jackson
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.0")
@@ -45,10 +40,6 @@ dependencies {
 
     // JetBrains Annotations
     implementation("org.jetbrains:annotations:24.0.1")
-
-    // Test
-    testImplementation("org.springframework.boot:spring-boot-starter-test:2.4.2")
-    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
 }
 
 kotlin {
@@ -70,15 +61,6 @@ tasks {
         kotlinOptions {
             jvmTarget = "1.8"
             freeCompilerArgs = listOf("-Xjsr305=strict")
-        }
-    }
-
-    test {
-        useJUnitPlatform()
-        testLogging {
-            events(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)
-            exceptionFormat = TestExceptionFormat.FULL
-            showStandardStreams = false
         }
     }
 
