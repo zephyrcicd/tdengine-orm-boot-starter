@@ -25,6 +25,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.*;
 
 import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
@@ -43,8 +46,26 @@ public class TdTemplate {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final TdOrmConfig tdOrmConfig;
+    /**
+     * -- SETTER --
+     *  设置元对象字段处理器
+     *
+     */
+    private MetaObjectHandler metaObjectHandler = null;
     public static final Integer DEFAULT_BATCH_SIZE = 500;
 
+    /**
+     * 创建代理增强的TdTemplate实例
+     *
+     * @return 代理增强的TdTemplate实例
+     */
+    public TdTemplate createProxy() {
+        return (TdTemplate) Proxy.newProxyInstance(
+                TdTemplate.class.getClassLoader(),
+                new Class[]{TdTemplate.class},
+                new TdTemplateInvocationHandler(this, metaObjectHandler)
+        );
+    }
 
     /**
      * 创建超级表
@@ -65,7 +86,7 @@ public class TdTemplate {
         Field primaryTsField = TdSqlUtil.checkPrimaryTsField(commFieldList);
 
         String finalSql = TdSqlConstant.CREATE_STABLE_IF_NOT_EXIST + TdSqlUtil.getTbName(clazz)
-                + TdSqlUtil.buildCreateColumn(commFieldList, primaryTsField);
+                          + TdSqlUtil.buildCreateColumn(commFieldList, primaryTsField);
         List<Field> tagFieldList = fieldListPairByTag.getFirst();
 
         if (CollectionUtils.isEmpty(tagFieldList)) {
@@ -369,7 +390,7 @@ public class TdTemplate {
      *
      * <p>
      * 批量插入实体列表到不同的子表中。会根据表名策略对数据进行智能分组，
-     * 相同表名的数据合并为一条批量 INSERT 语句，提高插入效率。
+     * 相同表名的数据放在一起合并为一条批量 INSERT 语句，提高插入效率。
      * 使用默认批次大小（{@value DEFAULT_BATCH_SIZE}）进行分批插入。
      * </p>
      *
@@ -414,6 +435,7 @@ public class TdTemplate {
         if (pageSize <= 0) {
             throw new IllegalArgumentException("Partition size must be greater than zero");
         }
+
         // 不使用USING语法时, 不能指定TAG字段的值
         List<Field> fieldList = TdSqlUtil.getExistNonTagFields(clazz);
 
@@ -881,4 +903,67 @@ public class TdTemplate {
         }
     }
 
+    /**
+     * TdTemplate动态代理调用处理器
+     * 用于在方法调用前后添加元对象处理逻辑
+     */
+    private static class TdTemplateInvocationHandler implements InvocationHandler {
+        private final TdTemplate target;
+        private final MetaObjectHandler metaObjectHandler;
+
+        public TdTemplateInvocationHandler(TdTemplate target, MetaObjectHandler metaObjectHandler) {
+            this.target = target;
+            this.metaObjectHandler = metaObjectHandler;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            // 只有在设置了MetaObjectHandler时才执行处理逻辑
+            if (metaObjectHandler != null) {
+                // 对于插入相关方法，在调用前进行元对象处理
+                String methodName = method.getName();
+                if (methodName.equals("insert") || methodName.equals("insertUsing") ||
+                    methodName.startsWith("batchInsert")) {
+
+                    // 处理参数中的实体对象或Map
+                    processInsertParams(args);
+                }
+            }
+
+            // 调用原始方法
+            return method.invoke(target, args);
+        }
+
+        /**
+         * 处理插入方法的参数，执行元对象填充
+         * @param args 方法参数
+         */
+        private void processInsertParams(Object[] args) {
+            if (args == null || args.length == 0) {
+                return;
+            }
+
+            // 使用函数式编程风格处理参数
+            java.util.Arrays.stream(args)
+                    .filter(arg -> arg != null && !(arg instanceof DynamicNameStrategy))
+                    .forEach(this::processObject);
+        }
+
+        /**
+         * 处理单个对象或列表对象
+         * @param obj 待处理的对象
+         */
+        private void processObject(Object obj) {
+            if (obj == null) {
+                return;
+            }
+
+            // 使用函数式编程风格处理对象
+            if (obj instanceof List) {
+                ((List<?>) obj).forEach(this::processObject);
+            } else {
+                metaObjectHandler.insertFill(obj);
+            }
+        }
+    }
 }

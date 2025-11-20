@@ -1,6 +1,7 @@
 package com.zephyrcicd.tdengineorm.config;
 
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
+import com.zephyrcicd.tdengineorm.template.TsMetaObjectHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -15,6 +16,7 @@ import javax.sql.DataSource;
 
 /**
  * TDengine ORM 自动配置类
+ * <p>提供对 TDengine 数据库的自动配置支持</p>
  *
  * @author Zephyr
  */
@@ -39,12 +41,7 @@ public class TdOrmAutoConfiguration {
             Object druidDataSource = druidDataSourceClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StringUtils.hasText(tdOrmConfig.getUrl())) {
-                druidDataSourceClass.getMethod("setUrl", String.class).invoke(druidDataSource, tdOrmConfig.getUrl());
-            }
-            druidDataSourceClass.getMethod("setUsername", String.class).invoke(druidDataSource, tdOrmConfig.getUsername());
-            druidDataSourceClass.getMethod("setPassword", String.class).invoke(druidDataSource, tdOrmConfig.getPassword());
-            druidDataSourceClass.getMethod("setDriverClassName", String.class).invoke(druidDataSource, tdOrmConfig.getDriverClassName());
+            setBasicDataSourceProperties(druidDataSource, druidDataSourceClass, tdOrmConfig);
 
             // 设置 Druid 特有配置
             druidDataSourceClass.getMethod("setInitialSize", int.class).invoke(druidDataSource, 5);
@@ -77,12 +74,7 @@ public class TdOrmAutoConfiguration {
             Object hikariConfig = hikariConfigClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StringUtils.hasText(tdOrmConfig.getUrl())) {
-                hikariConfigClass.getMethod("setJdbcUrl", String.class).invoke(hikariConfig, tdOrmConfig.getUrl());
-            }
-            hikariConfigClass.getMethod("setUsername", String.class).invoke(hikariConfig, tdOrmConfig.getUsername());
-            hikariConfigClass.getMethod("setPassword", String.class).invoke(hikariConfig, tdOrmConfig.getPassword());
-            hikariConfigClass.getMethod("setDriverClassName", String.class).invoke(hikariConfig, tdOrmConfig.getDriverClassName());
+            setBasicHikariConfigProperties(hikariConfig, hikariConfigClass, tdOrmConfig);
 
             // 设置 HikariCP 特有配置
             hikariConfigClass.getMethod("setMaximumPoolSize", int.class).invoke(hikariConfig, 20);
@@ -110,12 +102,7 @@ public class TdOrmAutoConfiguration {
             Object basicDataSource = basicDataSourceClass.getDeclaredConstructor().newInstance();
 
             // 设置基本连接信息
-            if (StringUtils.hasText(tdOrmConfig.getUrl())) {
-                basicDataSourceClass.getMethod("setUrl", String.class).invoke(basicDataSource, tdOrmConfig.getUrl());
-            }
-            basicDataSourceClass.getMethod("setUsername", String.class).invoke(basicDataSource, tdOrmConfig.getUsername());
-            basicDataSourceClass.getMethod("setPassword", String.class).invoke(basicDataSource, tdOrmConfig.getPassword());
-            basicDataSourceClass.getMethod("setDriverClassName", String.class).invoke(basicDataSource, tdOrmConfig.getDriverClassName());
+            setBasicDataSourceProperties(basicDataSource, basicDataSourceClass, tdOrmConfig);
 
             // 设置 DBCP2 特有配置
             basicDataSourceClass.getMethod("setInitialSize", int.class).invoke(basicDataSource, 5);
@@ -146,17 +133,36 @@ public class TdOrmAutoConfiguration {
             Class<?> driverManagerDataSourceClass = Class.forName("org.springframework.jdbc.datasource.DriverManagerDataSource");
             Object dataSource = driverManagerDataSourceClass.getDeclaredConstructor().newInstance();
 
-            if (StringUtils.hasText(tdOrmConfig.getUrl())) {
-                driverManagerDataSourceClass.getMethod("setUrl", String.class).invoke(dataSource, tdOrmConfig.getUrl());
-            }
-            driverManagerDataSourceClass.getMethod("setUsername", String.class).invoke(dataSource, tdOrmConfig.getUsername());
-            driverManagerDataSourceClass.getMethod("setPassword", String.class).invoke(dataSource, tdOrmConfig.getPassword());
-            driverManagerDataSourceClass.getMethod("setDriverClassName", String.class).invoke(dataSource, tdOrmConfig.getDriverClassName());
+            setBasicDataSourceProperties(dataSource, driverManagerDataSourceClass, tdOrmConfig);
 
             return (DataSource) dataSource;
         } catch (Exception e) {
             throw new RuntimeException("创建默认 DataSource 失败", e);
         }
+    }
+
+    /**
+     * 设置基本数据源属性
+     */
+    private void setBasicDataSourceProperties(Object dataSource, Class<?> dataSourceClass, TdOrmConfig tdOrmConfig) throws Exception {
+        if (StringUtils.hasText(tdOrmConfig.getUrl())) {
+            dataSourceClass.getMethod("setUrl", String.class).invoke(dataSource, tdOrmConfig.getUrl());
+        }
+        dataSourceClass.getMethod("setUsername", String.class).invoke(dataSource, tdOrmConfig.getUsername());
+        dataSourceClass.getMethod("setPassword", String.class).invoke(dataSource, tdOrmConfig.getPassword());
+        dataSourceClass.getMethod("setDriverClassName", String.class).invoke(dataSource, tdOrmConfig.getDriverClassName());
+    }
+
+    /**
+     * 设置 HikariConfig 基本属性
+     */
+    private void setBasicHikariConfigProperties(Object hikariConfig, Class<?> hikariConfigClass, TdOrmConfig tdOrmConfig) throws Exception {
+        if (StringUtils.hasText(tdOrmConfig.getUrl())) {
+            hikariConfigClass.getMethod("setJdbcUrl", String.class).invoke(hikariConfig, tdOrmConfig.getUrl());
+        }
+        hikariConfigClass.getMethod("setUsername", String.class).invoke(hikariConfig, tdOrmConfig.getUsername());
+        hikariConfigClass.getMethod("setPassword", String.class).invoke(hikariConfig, tdOrmConfig.getPassword());
+        hikariConfigClass.getMethod("setDriverClassName", String.class).invoke(hikariConfig, tdOrmConfig.getDriverClassName());
     }
 
     /**
@@ -175,6 +181,12 @@ public class TdOrmAutoConfiguration {
     @ConditionalOnMissingBean(TdTemplate.class)
     public TdTemplate tdTemplate(@Qualifier(TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE) NamedParameterJdbcTemplate namedParameterJdbcTemplate,
                                  TdOrmConfig tdOrmConfig) {
-        return new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
+        TdTemplate tdTemplate = new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
+        // 根据配置决定是否启用TsMetaObjectHandler
+        if (tdOrmConfig.isEnableTsAutoFill()) {
+            tdTemplate.setMetaObjectHandler(new TsMetaObjectHandler());
+        }
+        // 返回代理增强的TdTemplate实例
+        return tdTemplate.createProxy();
     }
 }
