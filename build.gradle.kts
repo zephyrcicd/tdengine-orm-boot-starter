@@ -40,6 +40,13 @@ dependencies {
 
     // JetBrains Annotations
     implementation("org.jetbrains:annotations:24.0.1")
+
+    // Test dependencies
+    testImplementation("org.springframework.boot:spring-boot-starter-test:2.4.2") {
+        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
+    }
+    testImplementation("org.junit.jupiter:junit-jupiter:5.7.0")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.7.0")
 }
 
 kotlin {
@@ -68,6 +75,12 @@ tasks {
         options.encoding = "UTF-8"
         // 兼容 Java 8，不使用 html5
         (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
+    }
+
+    test {
+        useJUnitPlatform()
+        // 当没有发现测试时也不失败
+        failOnNoDiscoveredTests = false
     }
 }
 

@@ -296,7 +296,7 @@ private String internalField;  // 不参与 SQL 生成的内部字段
 
 #### 6. 实体类定义示例
 
-```java
+``java
 
 @TdTable("sensor_data")
 public class SensorData {
@@ -315,6 +315,65 @@ public class SensorData {
     private Long ts;
 
     // getter/setter 方法...
+}
+```
+
+### 自动填充功能
+
+框架提供自动填充功能，默认会自动填充名为 `ts` 的时间戳字段。该功能默认开启，可以通过配置进行关闭。
+
+#### 配置选项
+
+```yaml
+td-orm:
+  enabled: true
+  url: jdbc:TAOS://localhost:6030/test
+  username: root
+  password: taosdata
+  driver-class-name: com.taosdata.jdbc.TSDBDriver
+  log-level: ERROR
+  enable-ts-auto-fill: true  # 是否启用ts字段自动填充，默认为true
+```
+
+#### 支持的数据类型
+
+自动填充功能支持多种时间类型：
+- `Long`/`long` - 毫秒时间戳
+- `Date` - Java日期类型
+- `LocalDateTime` - Java 8日期时间类型
+- `LocalDate` - Java 8日期类型
+- `Instant` - Java 8时间戳类型
+
+#### 使用示例
+
+实体类中只需定义名为 `ts` 的字段，框架会在插入数据时自动填充：
+
+```java
+@TdTable("sensor_data")
+public class SensorData {
+    private Long ts;  // 会自动填充为当前时间戳
+    
+    @TdTag
+    private String deviceId;
+    
+    private Double temperature;
+    private Double humidity;
+    
+    // getters and setters
+}
+```
+
+#### 自定义填充逻辑
+
+如果需要自定义填充逻辑，可以实现 `MetaObjectHandler` 接口：
+
+```java
+@Component
+public class CustomMetaObjectHandler implements MetaObjectHandler {
+    @Override
+    public <T> void insertFill(T object) {
+        // 自定义填充逻辑
+    }
 }
 ```
 

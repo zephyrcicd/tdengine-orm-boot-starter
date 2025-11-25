@@ -46,4 +46,9 @@ public class TdOrmConfig {
      */
     private TdLogLevelEnum logLevel = TdLogLevelEnum.ERROR;
 
+    /**
+     * 是否启用Ts字段自动填充功能，默认开启
+     */
+    private boolean enableTsAutoFill = true;
+
 }
