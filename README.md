@@ -296,7 +296,7 @@ private String internalField;  // 不参与 SQL 生成的内部字段
 
 #### 6. 实体类定义示例
 
-``java
+```java
 
 @TdTable("sensor_data")
 public class SensorData {
