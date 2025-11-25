@@ -79,8 +79,8 @@ tasks {
 
     test {
         useJUnitPlatform()
-        // 当没有发现测试时也不失败
-        failOnNoDiscoveredTests = false
+        // Gradle 9.x 已移除 failOnNoDiscoveredTests 属性
+        // 默认行为：没有测试时不会失败
     }
 }
 
