@@ -24,10 +24,11 @@ import org.springframework.data.util.Pair;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.CollectionUtils;
 
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.aop.framework.ProxyFactory;
+
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.*;
 
 import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
@@ -56,15 +57,15 @@ public class TdTemplate {
 
     /**
      * 创建代理增强的TdTemplate实例
+     * 使用Spring的ProxyFactory创建基于CGLIB的类代理
      *
      * @return 代理增强的TdTemplate实例
      */
     public TdTemplate createProxy() {
-        return (TdTemplate) Proxy.newProxyInstance(
-                TdTemplate.class.getClassLoader(),
-                new Class[]{TdTemplate.class},
-                new TdTemplateInvocationHandler(this, metaObjectHandler)
-        );
+        ProxyFactory proxyFactory = new ProxyFactory(this);
+        proxyFactory.setProxyTargetClass(true); // 强制使用CGLIB代理类而不是接口
+        proxyFactory.addAdvice(new TdTemplateMethodInterceptor(metaObjectHandler));
+        return (TdTemplate) proxyFactory.getProxy();
     }
 
     /**
@@ -904,34 +905,32 @@ public class TdTemplate {
     }
 
     /**
-     * TdTemplate动态代理调用处理器
+     * TdTemplate方法拦截器（基于Spring AOP的CGLIB代理）
      * 用于在方法调用前后添加元对象处理逻辑
      */
-    private static class TdTemplateInvocationHandler implements InvocationHandler {
-        private final TdTemplate target;
+    private static class TdTemplateMethodInterceptor implements MethodInterceptor {
         private final MetaObjectHandler metaObjectHandler;
 
-        public TdTemplateInvocationHandler(TdTemplate target, MetaObjectHandler metaObjectHandler) {
-            this.target = target;
+        public TdTemplateMethodInterceptor(MetaObjectHandler metaObjectHandler) {
             this.metaObjectHandler = metaObjectHandler;
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        public Object invoke(MethodInvocation invocation) throws Throwable {
             // 只有在设置了MetaObjectHandler时才执行处理逻辑
             if (metaObjectHandler != null) {
                 // 对于插入相关方法，在调用前进行元对象处理
-                String methodName = method.getName();
+                String methodName = invocation.getMethod().getName();
                 if (methodName.equals("insert") || methodName.equals("insertUsing") ||
                     methodName.startsWith("batchInsert")) {
 
                     // 处理参数中的实体对象或Map
-                    processInsertParams(args);
+                    processInsertParams(invocation.getArguments());
                 }
             }
 
             // 调用原始方法
-            return method.invoke(target, args);
+            return invocation.proceed();
         }
 
         /**
