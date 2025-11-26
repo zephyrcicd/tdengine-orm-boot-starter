@@ -3,9 +3,11 @@ package com.zephyrcicd.tdengineorm.config;
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import com.zephyrcicd.tdengineorm.template.TsMetaObjectHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +25,7 @@ import javax.sql.DataSource;
 @Configuration
 @EnableConfigurationProperties(TdOrmConfig.class)
 @ConditionalOnProperty(prefix = TdOrmConfig.PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
+@AutoConfigureBefore(DataSourceAutoConfiguration.class)
 public class TdOrmAutoConfiguration {
 
     public static final String TDENGINE_DATA_SOURCE = "tdengineDataSource";
