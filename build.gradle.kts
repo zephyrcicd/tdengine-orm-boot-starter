@@ -8,6 +8,8 @@ plugins {
 
 // Project information (group, version) is defined in gradle.properties
 
+val isLocalPublish = gradle.startParameter.taskNames.any { it.contains("publishToMavenLocal", ignoreCase = true) }
+
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
@@ -88,7 +90,9 @@ tasks {
 // Maven Central Publishing Configuration using vanniktech plugin
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    signAllPublications()
+    if (!isLocalPublish) {
+        signAllPublications()
+    }
 
     coordinates(project.group.toString(), project.name, project.version.toString())
 
