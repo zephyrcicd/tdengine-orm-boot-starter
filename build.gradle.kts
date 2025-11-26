@@ -88,12 +88,7 @@ tasks {
 // Maven Central Publishing Configuration using vanniktech plugin
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-
-    // 只在配置了签名密钥时才启用签名（用于Maven Central发布）
-    // 本地发布（publishToMavenLocal）不需要签名
-    if (project.hasProperty("signing.keyId")) {
-        signAllPublications()
-    }
+    signAllPublications()
 
     coordinates(project.group.toString(), project.name, project.version.toString())
 
