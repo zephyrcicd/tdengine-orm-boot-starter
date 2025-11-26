@@ -391,7 +391,7 @@ public class TdSqlUtil {
     public static Map<String, Object> getFiledValueMap(List<Field> fields, Object o) {
         Map<String, Object> tagValueMap = new HashMap<>(fields.size());
         for (Field field : fields) {
-            tagValueMap.put(field.getName(), getFieldValue(o, field));
+            tagValueMap.put(TdSqlUtil.getColumnName(field), getFieldValue(o, field));
         }
         return tagValueMap;
     }
@@ -503,13 +503,15 @@ public class TdSqlUtil {
 
         List<String> fieldValueParamNames = new ArrayList<>();
         String fieldNameStr = fields.stream().map(field -> {
-            String fieldName = field.getName();
-            fieldValueParamNames.add(field.getName());
-            paramsMap.put(fieldName, getFieldValue(object, field));
-            return FieldUtil.toUnderlineCase(fieldName);
+            String columnName = TdSqlUtil.getColumnName(field);
+            fieldValueParamNames.add(columnName);
+            paramsMap.put(columnName, getFieldValue(object, field));
+            return columnName;
         }).collect(TdSqlUtil.getColumnWithBracketCollector());
 
-        String fieldValueParamsStr = fieldValueParamNames.stream().map(item -> ":" + item).collect(TdSqlUtil.getColumnWithBracketCollector());
+        String fieldValueParamsStr = fieldValueParamNames.stream()
+                .map(item -> SqlConstant.COLON + item)
+                .collect(TdSqlUtil.getColumnWithBracketCollector());
         return fieldNameStr + (isTag ? TdSqlConstant.TAGS : SqlConstant.VALUES) + fieldValueParamsStr;
     }
 
