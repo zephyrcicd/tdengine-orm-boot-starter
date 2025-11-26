@@ -23,6 +23,7 @@ dependencies {
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-autoconfigure:2.4.2")
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc:2.4.2")
+    implementation("org.springframework.boot:spring-boot-configuration-processor:2.4.2")
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
@@ -87,7 +88,12 @@ tasks {
 // Maven Central Publishing Configuration using vanniktech plugin
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    signAllPublications()
+
+    // 只在配置了签名密钥时才启用签名（用于Maven Central发布）
+    // 本地发布（publishToMavenLocal）不需要签名
+    if (project.hasProperty("signing.keyId")) {
+        signAllPublications()
+    }
 
     coordinates(project.group.toString(), project.name, project.version.toString())
 
