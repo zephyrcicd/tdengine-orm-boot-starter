@@ -8,6 +8,7 @@ target/
 .gradle/
 !gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
+out
 
 ### IntelliJ IDEA ###
 .idea
