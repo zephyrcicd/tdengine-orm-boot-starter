@@ -1,17 +1,16 @@
 package com.zephyrcicd.tdengineorm.template;
 
-import java.lang.reflect.Field;
+import com.zephyrcicd.tdengineorm.util.ClassUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 默认填充ts字段的元对象处理器
@@ -46,34 +45,34 @@ public class TsMetaObjectHandler implements MetaObjectHandler {
         }
 
         // 处理实体对象
-        Field[] fields = object.getClass().getDeclaredFields();
-        Arrays.stream(fields)
-            .filter(field -> "ts".equals(field.getName()))
-            .forEach(field -> {
-                try {
-                    field.setAccessible(true);
-                    // 只有在ts字段为空时才进行填充
-                    if (field.get(object) == null) {
-                        Object timeValue = getCurrentTimeForType(field.getType());
-                        field.set(object, timeValue);
+        ClassUtil.getAllFields(object.getClass())
+                .stream()
+                .filter(field -> "ts".equals(field.getName()))
+                .forEach(field -> {
+                    try {
+                        field.setAccessible(true);
+                        // 只有在ts字段为空时才进行填充
+                        if (field.get(object) == null) {
+                            Object timeValue = getCurrentTimeForType(field.getType());
+                            field.set(object, timeValue);
+                        }
+                    } catch (IllegalAccessException e) {
+                        log.warn("Failed to access field: {}", field.getName(), e);
+                        // 忽略访问异常
                     }
-                } catch (IllegalAccessException e) {
-                    log.warn("Failed to access field: {}", field.getName(), e);
-                    // 忽略访问异常
-                }
-            });
+                });
     }
 
     /**
      * 根据字段类型获取当前时间值
-     * 
+     *
      * @param fieldType 字段类型
      * @return 对应类型的时间值
      */
     private Object getCurrentTimeForType(Class<?> fieldType) {
         // 使用ThreadLocalRandom避免并发问题
         long timestamp = System.currentTimeMillis() + ThreadLocalRandom.current().nextLong(0, 1000);
-        
+
         if (fieldType == long.class || fieldType == Long.class) {
             return timestamp;
         } else if (fieldType == int.class || fieldType == Integer.class) {
