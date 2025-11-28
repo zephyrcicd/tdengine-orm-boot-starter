@@ -1,5 +1,6 @@
 package com.zephyrcicd.tdengineorm.config;
 
+import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import com.zephyrcicd.tdengineorm.template.TsMetaObjectHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.StringUtils;
 
@@ -175,6 +177,24 @@ public class TdOrmAutoConfiguration {
     @ConditionalOnMissingBean(name = TDENGINE_NAMED_PARAMETER_JDBC_TEMPLATE)
     public NamedParameterJdbcTemplate tdengineNamedParameterJdbcTemplate(@Qualifier(TDENGINE_DATA_SOURCE) DataSource dataSource) {
         return new NamedParameterJdbcTemplate(dataSource);
+    }
+
+    /**
+     * 创建 TagOrderCacheManager
+     * 自动从 URL 中提取数据库名称，或使用配置的 databaseName
+     */
+    @Bean
+    @ConditionalOnMissingBean(TagOrderCacheManager.class)
+    public TagOrderCacheManager tagOrderCacheManager(@Qualifier(TDENGINE_DATA_SOURCE) DataSource dataSource,
+                                                     TdOrmConfig tdOrmConfig) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        String databaseName = tdOrmConfig.getDatabaseName();
+        if (databaseName == null) {
+            throw new IllegalStateException(
+                    "Cannot create TagOrderCacheManager: database name not found. " +
+                    "Please configure 'td-orm.database-name' or ensure the database name is present in 'td-orm.url'");
+        }
+        return new TagOrderCacheManager(jdbcTemplate, databaseName);
     }
 
     /**

@@ -637,4 +637,20 @@ public class TdSqlUtil {
         }
         return result;
     }
+
+    /**
+     * 获取所有 TAG 字段对（有序），按照字段顺序排序
+     * 返回 List 保持顺序
+     */
+    public static List<Pair<String, String>> getAllTagFieldsPairOrdered(Object obj) {
+        Class<?> entityClass = obj.getClass();
+        List<Field> fields = getExistTagFields(entityClass);
+        return fields.stream()
+                .map(field -> {
+                    Object fieldValue = getFieldValue(obj, field);
+                    String valueStr = fieldValue == null ? "unknown" : fieldValue.toString();
+                    return Pair.of(field.getName(), valueStr);
+                })
+                .collect(Collectors.toList());
+    }
 }

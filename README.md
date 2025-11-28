@@ -103,6 +103,37 @@ public class IoTDataService {
 }
 ```
 
+## 升级指南
+
+### v1.5.6 破坏性变更
+
+#### DefaultTagNameStrategy 重构为 Spring Bean
+
+`DefaultTagNameStrategy` 现在需要通过 Spring 依赖注入使用，不再支持直接 `new` 实例化。
+
+**变更原因：** 新增 Tag 顺序自动对齐 DDL 定义功能，生成子表名时 tag 值顺序与 TDengine DDL 定义保持一致。
+
+**迁移方式：**
+
+```java
+// 旧用法 (不再支持)
+DefaultTagNameStrategy<Entity> strategy = new DefaultTagNameStrategy<>();
+tdTemplate.insert(strategy, entity);
+
+// 新用法 - 通过 Spring DI 注入
+@Autowired
+private DefaultTagNameStrategy defaultTagNameStrategy;
+
+public void save(Entity entity) {
+    tdTemplate.insert(defaultTagNameStrategy, entity);
+}
+```
+
+**新增功能：**
+- `TagOrderCacheManager`：缓存超级表的 tag 定义顺序，避免重复查询
+- `TdOrmConfig.getDatabaseName()`：从 JDBC URL 自动提取数据库名称
+- Tag 顺序自动与 TDengine DDL 定义对齐，确保子表名生成一致性
+
 ## 详细使用指南
 
 ### 支持的连接池
