@@ -54,7 +54,9 @@ public class TagOrderCacheManager {
                     .map(row -> (String) row.get("Field"))
                     .collect(java.util.stream.Collectors.toList());
 
-            log.debug("Loaded tag order for table {}: {}", superTableName, tagOrder);
+            if (log.isDebugEnabled()) {
+                log.debug("Loaded tag order for table {}: {}", superTableName, tagOrder);
+            }
             return tagOrder;
         } catch (Exception e) {
             log.warn("Failed to query tag order from TDengine for table: {}, error: {}",
@@ -77,7 +79,9 @@ public class TagOrderCacheManager {
      */
     public void clearCache(String superTableName) {
         tagOrderCache.remove(superTableName);
-        log.debug("Tag order cache cleared for table: {}", superTableName);
+        if (log.isDebugEnabled()) {
+            log.debug("Tag order cache cleared for table: {}", superTableName);
+        }
     }
 
     /**
