@@ -25,11 +25,7 @@ dependencies {
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-autoconfigure:2.4.2")
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc:2.4.2")
-    implementation("org.springframework.boot:spring-boot-configuration-processor:2.4.2")
-
-    // Kotlin
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.22")
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:2.4.2")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:1.18.30")
