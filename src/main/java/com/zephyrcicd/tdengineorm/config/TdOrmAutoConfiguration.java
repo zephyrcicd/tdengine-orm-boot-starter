@@ -22,7 +22,6 @@ import javax.sql.DataSource;
 @EnableConfigurationProperties(TdOrmConfig.class)
 public class TdOrmAutoConfiguration {
 
-
     /**
      * 创建 TdTemplate
      * <p>
@@ -48,5 +47,4 @@ public class TdOrmAutoConfiguration {
     @ConditionalOnMissingBean(TagOrderCacheManager.class)
     public TagOrderCacheManager tagOrderCacheManager(TdTemplate tdTemplate) {
         return new TagOrderCacheManager(tdTemplate);
-    }
 }
