@@ -16,17 +16,17 @@ import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdWrappers;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.collections4.ListUtils;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.data.util.Pair;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.CollectionUtils;
-
-import org.aopalliance.intercept.MethodInterceptor;
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.aop.framework.ProxyFactory;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -45,15 +45,18 @@ import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
 @RequiredArgsConstructor
 public class TdTemplate {
 
+    @Getter
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final TdOrmConfig tdOrmConfig;
-    /**
-     * -- SETTER --
-     *  设置元对象字段处理器
-     *
-     */
-    private MetaObjectHandler metaObjectHandler = null;
-    public static final Integer DEFAULT_BATCH_SIZE = 500;
+
+    public static TdTemplate getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate, TdOrmConfig tdOrmConfig) {
+        TdTemplate tdTemplate = new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
+        // 根据配置决定是否启用代理对象（为了实现部分增强功能，如自动填入ts）
+        if (tdOrmConfig.isEnableTsAutoFill()) {
+            return createDefaultProxy(tdTemplate, new TdTemplateMethodInterceptor(new TsMetaObjectHandler()));
+        }
+        return tdTemplate;
+    }
 
     /**
      * 创建代理增强的TdTemplate实例
@@ -61,10 +64,14 @@ public class TdTemplate {
      *
      * @return 代理增强的TdTemplate实例
      */
-    public TdTemplate createProxy() {
-        ProxyFactory proxyFactory = new ProxyFactory(this);
-        proxyFactory.setProxyTargetClass(true); // 强制使用CGLIB代理类而不是接口
-        proxyFactory.addAdvice(new TdTemplateMethodInterceptor(metaObjectHandler));
+    private static TdTemplate createDefaultProxy(TdTemplate tdTemplate, TdTemplateMethodInterceptor... tdTemplateMethodInterceptors) {
+        ProxyFactory proxyFactory = new ProxyFactory(tdTemplate);
+        proxyFactory.setProxyTargetClass(true);
+        if (tdTemplateMethodInterceptors != null) {
+            for (TdTemplateMethodInterceptor tdTemplateMethodInterceptor : tdTemplateMethodInterceptors) {
+                proxyFactory.addAdvice(tdTemplateMethodInterceptor);
+            }
+        }
         return (TdTemplate) proxyFactory.getProxy();
     }
 
@@ -87,7 +94,7 @@ public class TdTemplate {
         Field primaryTsField = TdSqlUtil.checkPrimaryTsField(commFieldList);
 
         String finalSql = TdSqlConstant.CREATE_STABLE_IF_NOT_EXIST + TdSqlUtil.getTbName(clazz)
-                          + TdSqlUtil.buildCreateColumn(commFieldList, primaryTsField);
+                + TdSqlUtil.buildCreateColumn(commFieldList, primaryTsField);
         List<Field> tagFieldList = fieldListPairByTag.getFirst();
 
         if (CollectionUtils.isEmpty(tagFieldList)) {
@@ -158,7 +165,6 @@ public class TdTemplate {
      * @param wrapper 查询包装器
      * @param <T>     实体类型（用于构建查询条件）
      * @return Map，key 为列名（列别名），value 为列值；如果没有数据则返回 null
-     *
      * @see #listAsMap(AbstractTdQueryWrapper) 查询 Map 列表
      * @see #getOne(AbstractTdQueryWrapper, Class) 查询并映射到实体类
      */
@@ -204,7 +210,6 @@ public class TdTemplate {
      * @param wrapper 查询包装器
      * @param <T>     实体类型（用于构建查询条件）
      * @return Map 列表，每个 Map 的 key 为列名（列别名），value 为列值
-     *
      * @see #getOneAsMap(AbstractTdQueryWrapper) 查询单条 Map 数据
      * @see #list(AbstractTdQueryWrapper, Class) 查询并映射到实体类
      */
@@ -382,7 +387,7 @@ public class TdTemplate {
     }
 
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList) {
-        return batchInsert(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
+        return batchInsert(clazz, entityList, tdOrmConfig.getPageSize(), new DefaultDynamicNameStrategy<>());
     }
 
 
@@ -392,7 +397,7 @@ public class TdTemplate {
      * <p>
      * 批量插入实体列表到不同的子表中。会根据表名策略对数据进行智能分组，
      * 相同表名的数据放在一起合并为一条批量 INSERT 语句，提高插入效率。
-     * 使用默认批次大小（{@value DEFAULT_BATCH_SIZE}）进行分批插入。
+     * 使用指定批次大小（tdOrmConfig.getPageSize()）进行分批插入。
      * </p>
      *
      * <p><b>适用场景：</b>大批量数据导入不同子表、多设备数据批量上报、分表场景的批量写入</p>
@@ -404,7 +409,7 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        return batchInsert(clazz, entityList, DEFAULT_BATCH_SIZE, dynamicTbNameStrategy);
+        return batchInsert(clazz, entityList, tdOrmConfig.getPageSize(), dynamicTbNameStrategy);
     }
 
     /**
@@ -488,7 +493,7 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public int[] batchInsert(String tableName, List<Map<String, Object>> dataList) {
-        return batchInsert(tableName, dataList, DEFAULT_BATCH_SIZE);
+        return batchInsert(tableName, dataList, tdOrmConfig.getPageSize());
     }
 
     /**
@@ -539,7 +544,7 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public int[] batchInsert(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String, Object>> strategy) {
-        return batchInsert(dataList, strategy, DEFAULT_BATCH_SIZE);
+        return batchInsert(dataList, strategy, tdOrmConfig.getPageSize());
     }
 
     /**
@@ -619,7 +624,7 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList) {
-        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, new DefaultDynamicNameStrategy<>());
+        return batchInsertUsing(clazz, entityList, tdOrmConfig.getPageSize(), new DefaultDynamicNameStrategy<>());
     }
 
     /**
@@ -645,7 +650,7 @@ public class TdTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        return batchInsertUsing(clazz, entityList, DEFAULT_BATCH_SIZE, dynamicTbNameStrategy);
+        return batchInsertUsing(clazz, entityList, tdOrmConfig.getPageSize(), dynamicTbNameStrategy);
     }
 
     /**
@@ -922,7 +927,7 @@ public class TdTemplate {
                 // 对于插入相关方法，在调用前进行元对象处理
                 String methodName = invocation.getMethod().getName();
                 if (methodName.equals("insert") || methodName.equals("insertUsing") ||
-                    methodName.startsWith("batchInsert")) {
+                        methodName.startsWith("batchInsert")) {
 
                     // 处理参数中的实体对象或Map
                     processInsertParams(invocation.getArguments());
@@ -935,6 +940,7 @@ public class TdTemplate {
 
         /**
          * 处理插入方法的参数，执行元对象填充
+         *
          * @param args 方法参数
          */
         private void processInsertParams(Object[] args) {
@@ -950,6 +956,7 @@ public class TdTemplate {
 
         /**
          * 处理单个对象或列表对象
+         *
          * @param obj 待处理的对象
          */
         private void processObject(Object obj) {
