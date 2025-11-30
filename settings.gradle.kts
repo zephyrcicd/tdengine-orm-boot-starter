@@ -1,1 +1,0 @@
-rootProject.name = "tdengine-orm-boot-starter"
