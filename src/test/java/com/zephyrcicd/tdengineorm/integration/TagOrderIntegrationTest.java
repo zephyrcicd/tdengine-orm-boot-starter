@@ -6,16 +6,21 @@ import com.zephyrcicd.tdengineorm.entity.Acquisition;
 import com.zephyrcicd.tdengineorm.strategy.DefaultTagNameStrategy;
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.data.util.Pair;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import java.util.*;
+import java.sql.ResultSet;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 /**
@@ -27,67 +32,50 @@ import static org.mockito.Mockito.when;
  */
 class TagOrderIntegrationTest {
 
-    private static JdbcTemplate jdbcTemplate;
-    private static NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-    private static TdOrmConfig tdOrmConfig;
-    private static TdTemplate tdTemplate;
     private static TagOrderCacheManager tagOrderCacheManager;
 
     @BeforeAll
-    static void setUpAll() {
-        // 使用 Mock 模拟 JdbcTemplate
-        jdbcTemplate = Mockito.mock(JdbcTemplate.class);
-        namedParameterJdbcTemplate = Mockito.mock(NamedParameterJdbcTemplate.class);
+    @SuppressWarnings("unchecked")
+    static void setUpAll() throws Exception {
+        // Mock NamedParameterJdbcTemplate
+        NamedParameterJdbcTemplate namedParameterJdbcTemplate = Mockito.mock(NamedParameterJdbcTemplate.class);
 
         // 模拟 DESCRIBE 查询返回的 tag 顺序
-        List<Map<String, Object>> describeResult = Arrays.asList(
-                createRow("ts", "TIMESTAMP", 8, ""),
-                createRow("value", "DOUBLE", 8, ""),
-                createRow("energy_type_code", "NCHAR", 64, "TAG"),
-                createRow("product_id", "NCHAR", 64, "TAG"),
-                createRow("device_id", "NCHAR", 64, "TAG")
-        );
-        when(jdbcTemplate.queryForList(anyString())).thenReturn(describeResult);
+        List<String> tagFields = Arrays.asList("energy_type_code", "product_id", "device_id");
+        when(namedParameterJdbcTemplate.query(
+                anyString(),
+                anyMap(),
+                any(RowMapper.class)
+        )).thenAnswer(invocation -> {
+            RowMapper<String> rowMapper = invocation.getArgument(2);
+            // 模拟返回包含 null 的列表（非 TAG 字段返回 null）
+            return Arrays.asList(
+                    null, // ts
+                    null, // value
+                    simulateRowMapper(rowMapper, "energy_type_code", "TAG"),
+                    simulateRowMapper(rowMapper, "product_id", "TAG"),
+                    simulateRowMapper(rowMapper, "device_id", "TAG")
+            );
+        });
 
         // 创建配置对象
-        tdOrmConfig = new TdOrmConfig();
-        tdOrmConfig.setUrl("jdbc:TAOS-RS://localhost:6041/iot_data?useSSL=false");
-        tdOrmConfig.setUsername("root");
-        tdOrmConfig.setPassword("taosdata");
-        tdOrmConfig.setDriverClassName("com.taosdata.jdbc.rs.RestfulDriver");
+        TdOrmConfig tdOrmConfig = new TdOrmConfig();
 
         // 创建 TdTemplate
-        tdTemplate = new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
+        TdTemplate tdTemplate = new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
 
         // 创建 TagOrderCacheManager
-        String databaseName = tdOrmConfig.getDatabaseName();
-        assertNotNull(databaseName, "Database name should be extracted from URL");
-        assertEquals("iot_data", databaseName, "Database name should be iot_data");
-
-        tagOrderCacheManager = new TagOrderCacheManager(jdbcTemplate, databaseName);
+        tagOrderCacheManager = new TagOrderCacheManager(tdTemplate);
     }
 
-    private static Map<String, Object> createRow(String field, String type, int length, String note) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("Field", field);
-        row.put("Type", type);
-        row.put("Length", length);
-        row.put("Note", note);
-        return row;
-    }
-
-    @AfterAll
-    static void tearDownAll() {
-        // Mock 对象不需要关闭
-    }
-
-    @Test
-    @DisplayName("测试从配置 URL 中自动提取数据库名称")
-    void testExtractDatabaseNameFromConfig() {
-        String databaseName = tdOrmConfig.getDatabaseName();
-        assertNotNull(databaseName);
-        assertEquals("iot_data", databaseName);
-        System.out.println("✓ Database name extracted from URL: " + databaseName);
+    /**
+     * 模拟 RowMapper 的行为
+     */
+    private static String simulateRowMapper(RowMapper<String> rowMapper, String field, String note) throws Exception {
+        ResultSet rs = Mockito.mock(ResultSet.class);
+        when(rs.getString("Field")).thenReturn(field);
+        when(rs.getString("Note")).thenReturn(note);
+        return rowMapper.mapRow(rs, 0);
     }
 
     @Test
@@ -133,7 +121,7 @@ class TagOrderIntegrationTest {
     @DisplayName("测试 DefaultTagNameStrategy 生成表名")
     void testDefaultTagNameStrategy() {
         // 创建策略实例
-        DefaultTagNameStrategy strategy = new DefaultTagNameStrategy(tagOrderCacheManager);
+        DefaultTagNameStrategy<Acquisition> strategy = new DefaultTagNameStrategy<>(tagOrderCacheManager);
 
         // 创建实体
         Acquisition acquisition = Acquisition.builder()
@@ -167,7 +155,7 @@ class TagOrderIntegrationTest {
         System.out.println("✓ Tag order from DDL: " + tagOrder);
 
         // 创建策略
-        DefaultTagNameStrategy strategy = new DefaultTagNameStrategy(tagOrderCacheManager);
+        DefaultTagNameStrategy<Acquisition> strategy = new DefaultTagNameStrategy<>(tagOrderCacheManager);
 
         // 创建实体
         Acquisition acquisition = Acquisition.builder()
@@ -194,7 +182,7 @@ class TagOrderIntegrationTest {
     @Test
     @DisplayName("测试多个实体生成不同的表名")
     void testMultipleEntitiesDifferentTableNames() {
-        DefaultTagNameStrategy strategy = new DefaultTagNameStrategy(tagOrderCacheManager);
+        DefaultTagNameStrategy<Acquisition> strategy = new DefaultTagNameStrategy<>(tagOrderCacheManager);
 
         Acquisition acquisition1 = Acquisition.builder()
                 .energyTypeCode("ELEC")

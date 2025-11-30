@@ -2,12 +2,12 @@ package com.zephyrcicd.tdengineorm.config;
 
 import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
@@ -24,24 +24,6 @@ public class TdOrmAutoConfiguration {
 
 
     /**
-     * 创建 TagOrderCacheManager
-     * 自动从 URL 中提取数据库名称，或使用配置的 databaseName
-     */
-    @Bean
-    @ConditionalOnMissingBean(TagOrderCacheManager.class)
-    public TagOrderCacheManager tagOrderCacheManager(@Qualifier(TDENGINE_DATA_SOURCE) DataSource dataSource,
-                                                     TdOrmConfig tdOrmConfig) {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        String databaseName = tdOrmConfig.getDatabaseName();
-        if (databaseName == null) {
-            throw new IllegalStateException(
-                    "Cannot create TagOrderCacheManager: database name not found. " +
-                    "Please configure 'td-orm.database-name' or ensure the database name is present in 'td-orm.url'");
-        }
-        return new TagOrderCacheManager(jdbcTemplate, databaseName);
-    }
-
-    /**
      * 创建 TdTemplate
      * <p>
      * 需要用户自行配置数据源，如果开启了td-orm，并且默认使用主数据源
@@ -54,5 +36,17 @@ public class TdOrmAutoConfiguration {
     @ConditionalOnProperty(prefix = TdOrmConfig.PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
     public TdTemplate tdTemplate(DataSource dataSource, TdOrmConfig tdOrmConfig) {
         return TdTemplate.getInstance(new NamedParameterJdbcTemplate(dataSource), tdOrmConfig);
+    }
+
+
+        /**
+     * 创建 TagOrderCacheManager
+     * 自动从 URL 中提取数据库名称，或使用配置的 databaseName
+     */
+    @Bean
+    @ConditionalOnBean(TdTemplate.class)
+    @ConditionalOnMissingBean(TagOrderCacheManager.class)
+    public TagOrderCacheManager tagOrderCacheManager(TdTemplate tdTemplate) {
+        return new TagOrderCacheManager(tdTemplate);
     }
 }

@@ -1,14 +1,19 @@
 package com.zephyrcicd.tdengineorm.cache;
 
-import org.junit.jupiter.api.*;
+import com.zephyrcicd.tdengineorm.config.TdOrmConfig;
+import com.zephyrcicd.tdengineorm.template.TdTemplate;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 /**
  * TagOrderCacheManager 单元测试
@@ -18,6 +23,7 @@ import static org.mockito.Mockito.*;
  */
 class TagOrderCacheManagerTest {
 
+    private TdTemplate tdTemplate;
     private JdbcTemplate jdbcTemplate;
     private List<Map<String, Object>> mockDescribeResult;
     private TagOrderCacheManager tagOrderCacheManager;
@@ -35,6 +41,8 @@ class TagOrderCacheManagerTest {
     void setUp() {
         // 每个测试创建新的 mock 对象
         jdbcTemplate = Mockito.mock(JdbcTemplate.class);
+        NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        tdTemplate = new TdTemplate(namedParameterJdbcTemplate, new TdOrmConfig());
 
         // 模拟 DESCRIBE 查询返回的结果
         mockDescribeResult = Arrays.asList(
@@ -50,7 +58,7 @@ class TagOrderCacheManagerTest {
         when(jdbcTemplate.queryForList("DESCRIBE `iot_data`.`non_existent_table_xyz`"))
                 .thenThrow(new RuntimeException("Table not found"));
 
-        tagOrderCacheManager = new TagOrderCacheManager(jdbcTemplate, "iot_data");
+        tagOrderCacheManager = new TagOrderCacheManager(tdTemplate);
     }
 
     @Test

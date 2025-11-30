@@ -1,12 +1,15 @@
 package com.zephyrcicd.tdengineorm.cache;
 
+import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Tag 顺序缓存管理器
@@ -19,13 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class TagOrderCacheManager {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final String databaseName;
+    private final TdTemplate tdTemplate;
     private final Map<String, List<String>> tagOrderCache = new ConcurrentHashMap<>();
 
-    public TagOrderCacheManager(JdbcTemplate jdbcTemplate, String databaseName) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.databaseName = databaseName;
+    public TagOrderCacheManager(TdTemplate tdTemplate) {
+        this.tdTemplate = tdTemplate;
     }
 
     /**
@@ -39,29 +40,38 @@ public class TagOrderCacheManager {
     }
 
     /**
-     * 从 TDengine 查询超级表的 tag 定义顺序
-     * 使用 DESCRIBE 命令获取表结构，然后提取 TAG 字段
+     * 查询超级表的 TAG 字段顺序
+     * <p>
+     * 使用 DESCRIBE 命令直接查询表结构，无需指定数据库名（连接时已指定）
+     * </p>
      */
     private List<String> queryTagOrderFromDatabase(String superTableName) {
         try {
-            String sql = String.format("DESCRIBE `%s`.`%s`", databaseName, superTableName);
+            NamedParameterJdbcTemplate npJdbc = tdTemplate.getNamedParameterJdbcTemplate();
 
-            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+            // DESCRIBE 命令可以直接使用表名，连接时已指定数据库
+            String sql = "DESCRIBE `" + superTableName + "`";
 
-            // 过滤出 Note 列为 "TAG" 的行，并提取 Field 列
-            List<String> tagOrder = rows.stream()
-                    .filter(row -> "TAG".equals(row.get("Note")))
-                    .map(row -> (String) row.get("Field"))
-                    .collect(java.util.stream.Collectors.toList());
+            List<String> tagList = npJdbc.query(
+                    sql,
+                    Collections.emptyMap(),
+                    (rs, rowNum) -> {
+                        String note = rs.getString("Note");
+                        if ("TAG".equalsIgnoreCase(note)) {
+                            return rs.getString("Field");
+                        }
+                        return null;
+                    }
+            ).stream().filter(Objects::nonNull).collect(Collectors.toList());
 
             if (log.isDebugEnabled()) {
-                log.debug("Loaded tag order for table {}: {}", superTableName, tagOrder);
+                log.debug("Loaded tag order for stable '{}': {}", superTableName, tagList);
             }
-            return tagOrder;
+
+            return tagList;
+
         } catch (Exception e) {
-            log.warn("Failed to query tag order from TDengine for table: {}, error: {}",
-                    superTableName, e.getMessage());
-            // 查询失败时返回空列表
+            log.warn("查询 TDengine TAG 列失败（stable={}）：{}", superTableName, e.getMessage());
             return Collections.emptyList();
         }
     }
