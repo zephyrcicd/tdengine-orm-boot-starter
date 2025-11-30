@@ -22,26 +22,6 @@ public class TdOrmConfig {
     private boolean enabled = true;
 
     /**
-     * 连接地址
-     */
-    private String url;
-
-    /**
-     * 用户名
-     */
-    private String username = "root";
-
-    /**
-     * 密码
-     */
-    private String password = "taosdata";
-
-    /**
-     * 驱动类名
-     */
-    private String driverClassName = "com.taosdata.jdbc.TSDBDriver";
-
-    /**
      * 日志级别
      */
     private TdLogLevelEnum logLevel = TdLogLevelEnum.ERROR;
@@ -51,4 +31,9 @@ public class TdOrmConfig {
      */
     private boolean enableTsAutoFill = true;
 
+    /**
+     * 分页大小
+     * 默认500
+     */
+    private int pageSize = 500;
 }
