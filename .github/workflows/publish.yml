@@ -21,21 +21,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v3
-      with:
-        gradle-version: wrapper
-
-    - name: Cache Gradle dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
+        cache: maven
 
     - name: Extract version from tag
       id: extract_version
@@ -45,35 +31,63 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
 
-    - name: Verify version matches gradle.properties
+    - name: Verify version matches pom.xml
       run: |
-        # 检查标签版本是否与 gradle.properties 中的版本一致
-        GRADLE_VERSION=$(grep "^version=" gradle.properties | cut -d'=' -f2)
+        # 检查标签版本是否与 pom.xml 中的版本一致
+        POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
         TAG_VERSION=${{ steps.extract_version.outputs.VERSION }}
-        echo "Gradle version: $GRADLE_VERSION"
+        echo "POM version: $POM_VERSION"
         echo "Tag version: $TAG_VERSION"
-        if [ "$GRADLE_VERSION" != "$TAG_VERSION" ]; then
-          echo "Error: Version mismatch between gradle.properties ($GRADLE_VERSION) and tag ($TAG_VERSION)"
+        if [ "$POM_VERSION" != "$TAG_VERSION" ]; then
+          echo "Error: Version mismatch between pom.xml ($POM_VERSION) and tag ($TAG_VERSION)"
           exit 1
         fi
-        echo "Version verification passed: $GRADLE_VERSION"
-
-    - name: Make gradlew executable
-      run: chmod +x gradlew
+        echo "Version verification passed: $POM_VERSION"
 
     - name: Build project
-      run: ./gradlew clean build -x test
+      run: mvn clean package -DskipTests
       # 注意：由于测试需要 TDengine 数据库，这里跳过测试
-      # 在实际环境中，可以配置 TDengine 服务进行完整测试
+
+    - name: Import GPG key
+      run: |
+        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+    - name: Configure Maven settings
+      run: |
+        mkdir -p ~/.m2
+        cat > ~/.m2/settings.xml << 'EOF'
+        <settings>
+          <servers>
+            <server>
+              <id>central</id>
+              <username>${env.MAVEN_USERNAME}</username>
+              <password>${env.MAVEN_CENTRAL_TOKEN}</password>
+            </server>
+          </servers>
+          <profiles>
+            <profile>
+              <id>central</id>
+              <activation>
+                <activeByDefault>true</activeByDefault>
+              </activation>
+              <properties>
+                <gpg.keyname>${env.GPG_KEY_ID}</gpg.keyname>
+                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+              </properties>
+            </profile>
+          </profiles>
+        </settings>
+        EOF
 
     - name: Publish to Maven Central
-      run: ./gradlew publishToMavenCentral --no-configuration-cache
+      run: mvn deploy -DskipTests
       env:
-        ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
-        ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
-        ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
-        ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE }}
-        ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
+        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+        MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+        GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -109,6 +123,5 @@ jobs:
           ### 🔗 链接
           - [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter/${{ steps.extract_version.outputs.VERSION }})
           - [文档](https://github.com/zephyrcicd/tdengine-orm-boot-starter/blob/main/README.md)
-          - [Gradle 构建指南](https://github.com/zephyrcicd/tdengine-orm-boot-starter/blob/main/README_GRADLE.md)
         draft: false
         prerelease: false
