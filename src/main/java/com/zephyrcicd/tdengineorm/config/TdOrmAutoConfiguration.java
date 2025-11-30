@@ -38,7 +38,7 @@ public class TdOrmAutoConfiguration {
     }
 
 
-        /**
+    /**
      * 创建 TagOrderCacheManager
      * 自动从 URL 中提取数据库名称，或使用配置的 databaseName
      */
@@ -47,4 +47,5 @@ public class TdOrmAutoConfiguration {
     @ConditionalOnMissingBean(TagOrderCacheManager.class)
     public TagOrderCacheManager tagOrderCacheManager(TdTemplate tdTemplate) {
         return new TagOrderCacheManager(tdTemplate);
+    }
 }
