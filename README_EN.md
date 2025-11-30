@@ -59,18 +59,25 @@ dependencies {
 > 💡 **Latest Version**: Check [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) or [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) for the latest version
 > 💡 **TDengine JDBC Driver**: Please refer to [Maven Central - taos-jdbcdriver](https://central.sonatype.com/artifact/com.taosdata.jdbc/taos-jdbcdriver) and choose a version compatible with your TDengine server (e.g., 3.2.5, 3.6.3, etc.)
 
-### 2. Configure Database Connection
+### 2. Configure DataSource
 
-Configure TDengine connection in `application.yml`:
+This framework does not create DataSource automatically. Users need to configure it themselves. We recommend using Spring Boot's standard configuration:
+
 ```yaml
+spring:
+  datasource:
+    url: jdbc:TAOS://localhost:6030/test
+    username: root
+    password: taosdata
+    driver-class-name: com.taosdata.jdbc.TSDBDriver
+
 td-orm:
   enabled: true
-  url: jdbc:TAOS://localhost:6030/test
-  username: root
-  password: taosdata
-  driver-class-name: com.taosdata.jdbc.TSDBDriver
   log-level: ERROR
+  page-size: 500  # Batch operation page size, default 500
 ```
+
+> Note: Starting from version 2.x, the framework focuses on ORM functionality. DataSource management is delegated to users or dedicated DataSource starters.
 
 ### 3. Create Entity Class
 
@@ -104,95 +111,104 @@ public class IoTDataService {
 
 ## Detailed Usage Guide
 
-### Supported Connection Pools
+### DataSource Configuration
 
-The starter supports the following connection pools, listed in order of priority:
+Starting from version 2.x, this framework no longer creates DataSource automatically but focuses on ORM functionality. Users need to configure TDengine DataSource themselves.
 
-1. **Druid** - Highest priority
-2. **HikariCP** - Second priority
-3. **Apache DBCP2** - Third priority
-4. **Spring DriverManagerDataSource** - Fallback option
+#### Option 1: Using Spring Boot Auto-Configuration (Recommended)
 
-### Usage Steps
-
-#### 1. Add Connection Pool Dependency (Optional)
-
-Choose a connection pool based on your needs:
-
-##### Maven
-
-**Using Druid Connection Pool**
-```xml
-<dependency>
-    <groupId>com.alibaba</groupId>
-    <artifactId>druid</artifactId>
-    <version>1.2.8</version>
-</dependency>
-```
-
-**Using HikariCP Connection Pool**
-```xml
-<dependency>
-    <groupId>com.zaxxer</groupId>
-    <artifactId>HikariCP</artifactId>
-    <version>5.0.1</version>
-</dependency>
-```
-
-**Using Apache DBCP2 Connection Pool**
-```xml
-<dependency>
-    <groupId>org.apache.commons</groupId>
-    <artifactId>commons-dbcp2</artifactId>
-    <version>2.9.0</version>
-</dependency>
-```
-
-##### Gradle
-
-**Kotlin DSL**:
-
-```kotlin
-dependencies {
-    // Druid
-    implementation("com.alibaba:druid:1.2.8")
-
-    // or HikariCP
-    implementation("com.zaxxer:HikariCP:5.0.1")
-
-    // or Apache DBCP2
-    implementation("org.apache.commons:commons-dbcp2:2.9.0")
-}
-```
-
-If no connection pool dependency is added, the starter will use Spring's DriverManagerDataSource as a fallback.
-
-#### 2. Configure Database Connection
-
-Configure TDengine connection information in `application.yml` or `application.properties`:
+The simplest way is to use Spring Boot's standard DataSource configuration:
 
 ##### application.yml Example
+
 ```yaml
+spring:
+  datasource:
+    url: jdbc:TAOS://localhost:6030/test
+    username: root
+    password: taosdata
+    driver-class-name: com.taosdata.jdbc.TSDBDriver
+
 td-orm:
   enabled: true  # Optional, defaults to true
-  url: jdbc:TAOS://localhost:6030/test
-  username: root
-  password: taosdata
-  driver-class-name: com.taosdata.jdbc.TSDBDriver
   log-level: ERROR  # Log level: ERROR, WARN, INFO, DEBUG
+  page-size: 500  # Batch operation page size, default 500
+  enable-ts-auto-fill: true  # Enable ts field auto-fill, default true
 ```
 
 ##### application.properties Example
+
 ```properties
+spring.datasource.url=jdbc:TAOS://localhost:6030/test
+spring.datasource.username=root
+spring.datasource.password=taosdata
+spring.datasource.driver-class-name=com.taosdata.jdbc.TSDBDriver
+
 td-orm.enabled=true
-td-orm.url=jdbc:TAOS://localhost:6030/test
-td-orm.username=root
-td-orm.password=taosdata
-td-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
 td-orm.log-level=ERROR
+td-orm.page-size=500
 ```
 
-#### 3. Using TdTemplate
+#### Option 2: Custom DataSource Bean
+
+For more fine-grained connection pool control, you can define a custom DataSource Bean:
+
+##### Using HikariCP
+
+```java
+@Configuration
+public class TdengineDataSourceConfig {
+
+    @Bean
+    @Primary
+    public DataSource dataSource() {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:TAOS://localhost:6030/test");
+        config.setUsername("root");
+        config.setPassword("taosdata");
+        config.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
+
+        // Custom pool settings
+        config.setMaximumPoolSize(30);
+        config.setMinimumIdle(10);
+        config.setConnectionTimeout(30000);
+        config.setIdleTimeout(600000);
+        config.setMaxLifetime(1800000);
+
+        return new HikariDataSource(config);
+    }
+}
+```
+
+##### Using Druid
+
+```java
+@Configuration
+public class TdengineDataSourceConfig {
+
+    @Bean
+    @Primary
+    public DataSource dataSource() {
+        DruidDataSource dataSource = new DruidDataSource();
+        dataSource.setUrl("jdbc:TAOS://localhost:6030/test");
+        dataSource.setUsername("root");
+        dataSource.setPassword("taosdata");
+        dataSource.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
+
+        // Custom pool settings
+        dataSource.setInitialSize(10);
+        dataSource.setMaxActive(50);
+        dataSource.setMinIdle(10);
+        dataSource.setMaxWait(30000);
+        dataSource.setValidationQuery("SELECT 1");
+        dataSource.setTestWhileIdle(true);
+
+        return dataSource;
+    }
+}
+```
+
+### Using TdTemplate
 
 Inject and use `TdTemplate` in your service class:
 
@@ -300,102 +316,13 @@ public class SensorData {
 
 #### Bean Creation
 
-The starter automatically creates the following beans:
+The starter automatically creates the following beans (based on user-provided DataSource):
 
-- `tdengineDataSource` - TDengine data source
 - `tdengineJdbcTemplate` - TDengine-specific JdbcTemplate
 - `tdengineNamedParameterJdbcTemplate` - TDengine-specific NamedParameterJdbcTemplate
 - `tdTemplate` - TDengine template class for data access operations
 
-#### Connection Pool Selection Logic
-
-1. Check if Druid-related classes exist in the classpath, if yes, create Druid DataSource
-2. If no Druid, check if HikariCP exists, if yes, create HikariCP DataSource
-3. If no HikariCP, check if DBCP2 exists, if yes, create DBCP2 DataSource
-4. If none of the above, use Spring's DriverManagerDataSource
-
-#### Connection Pool Configurations
-
-#### Customizing Connection Pool
-
-If you need to customize the connection pool settings, you can create your own DataSource bean. The starter will use your custom DataSource if it's named `tdengineDataSource`. Here's how to do it:
-
-##### Example: Custom HikariCP Configuration
-```java
-@Configuration
-public class CustomDataSourceConfig {
-    
-    @Bean("tdengineDataSource")
-    public DataSource tdengineDataSource() {
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:TAOS://localhost:6030/test");
-        config.setUsername("root");
-        config.setPassword("taosdata");
-        config.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
-        
-        // Customize pool settings
-        config.setMaximumPoolSize(30);
-        config.setMinimumIdle(10);
-        config.setConnectionTimeout(30000);
-        config.setIdleTimeout(600000);
-        config.setMaxLifetime(1800000);
-        
-        return new HikariDataSource(config);
-    }
-}
-```
-
-##### Example: Custom Druid Configuration
-```java
-@Configuration
-public class CustomDataSourceConfig {
-    
-    @Bean("tdengineDataSource")
-    public DataSource tdengineDataSource() {
-        DruidDataSource dataSource = new DruidDataSource();
-        dataSource.setUrl("jdbc:TAOS://localhost:6030/test");
-        dataSource.setUsername("root");
-        dataSource.setPassword("taosdata");
-        dataSource.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
-        
-        // Customize pool settings
-        dataSource.setInitialSize(10);
-        dataSource.setMaxActive(50);
-        dataSource.setMinIdle(10);
-        dataSource.setMaxWait(30000);
-        dataSource.setValidationQuery("SELECT 1");
-        dataSource.setTestWhileIdle(true);
-        
-        return dataSource;
-    }
-}
-```
-
-#### Default Configurations
-
-If you don't provide a custom DataSource bean, the starter will use the following default values:
-
-##### Druid Default Configuration
-- initialSize: 5
-- maxActive: 20
-- minIdle: 5
-- maxWait: 60000ms
-- validationQuery: "SELECT 1"
-- testWhileIdle: true
-
-##### HikariCP Default Configuration
-- maximumPoolSize: 20
-- minimumIdle: 5
-- connectionTimeout: 30000ms
-- idleTimeout: 600000ms
-- maxLifetime: 1800000ms
-
-##### DBCP2 Default Configuration
-- initialSize: 5
-- maxTotal: 20
-- minIdle: 5
-- maxIdle: 10
-- maxWaitMillis: 60000ms
+> Note: Starting from version 2.x, the framework no longer creates DataSource automatically. Users need to configure the DataSource themselves.
 
 ### Disabling Auto-Configuration
 
@@ -419,10 +346,9 @@ public class Application {
 
 ### Notes
 
-1. Ensure TDengine service is running and connection configuration is correct
-2. If multiple connection pools are introduced, one will be selected based on priority
-3. Advanced connection pool configurations can be overridden by custom DataSource Bean
-4. This starter is compatible with Spring Boot's auto-configuration and won't cause conflicts
+1. Ensure TDengine service is running and DataSource is configured correctly
+2. The framework depends on user-provided DataSource, make sure DataSource is properly configured
+3. This starter is compatible with Spring Boot's auto-configuration and won't cause conflicts
 
 ### Build Instructions
 

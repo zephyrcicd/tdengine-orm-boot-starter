@@ -60,18 +60,25 @@ dependencies {
 > 💡 **最新版本**：请访问 [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) 或 [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) 查看最新版本
 > 💡 **TDengine JDBC 驱动**：请参考 [Maven Central - taos-jdbcdriver](https://central.sonatype.com/artifact/com.taosdata.jdbc/taos-jdbcdriver) 选择与您的 TDengine 服务器版本兼容的驱动版本（如 3.2.5、3.6.3 等）
 
-### 2. 配置数据库连接
+### 2. 配置数据源
 
-在 `application.yml` 中配置 TDengine 连接信息：
+本框架不负责创建数据源，需要用户自行配置。推荐使用 Spring Boot 标准方式配置：
+
 ```yaml
+spring:
+  datasource:
+    url: jdbc:TAOS://localhost:6030/test
+    username: root
+    password: taosdata
+    driver-class-name: com.taosdata.jdbc.TSDBDriver
+
 td-orm:
   enabled: true
-  url: jdbc:TAOS://localhost:6030/test
-  username: root
-  password: taosdata
-  driver-class-name: com.taosdata.jdbc.TSDBDriver
   log-level: ERROR
+  page-size: 500  # 批量操作分页大小，默认500
 ```
+
+> 💡 **注意**：从 2.x 版本开始，框架专注于 ORM 功能，数据源管理由用户或专门的数据源 starter 负责。
 
 ### 3. 创建实体类
 
@@ -136,103 +143,104 @@ public void save(Entity entity) {
 
 ## 详细使用指南
 
-### 支持的连接池
+### 数据源配置
 
-该 starter 支持以下连接池，按优先级排序：
+从 2.x 版本开始，本框架不再自动创建数据源，而是专注于 ORM 功能。用户需要自行配置 TDengine 数据源。
 
-1. **Druid** - 优先级最高
-2. **HikariCP** - 优先级次之
-3. **Apache DBCP2** - 优先级再次之
-4. **Spring DriverManagerDataSource** - 兜底方案
+#### 方式一：使用 Spring Boot 自动配置（推荐）
 
-### 使用方法
-
-#### 1. 添加连接池依赖（可选）
-
-根据需要选择一个连接池：
-
-##### Maven
-
-**使用 Druid 连接池**
-
-```xml
-
-<dependency>
-    <groupId>com.alibaba</groupId>
-    <artifactId>druid</artifactId>
-    <version>1.2.8</version>
-</dependency>
-```
-
-**使用 HikariCP 连接池**
-
-```xml
-
-<dependency>
-    <groupId>com.zaxxer</groupId>
-    <artifactId>HikariCP</artifactId>
-    <version>5.0.1</version>
-</dependency>
-```
-
-**使用 Apache DBCP2 连接池**
-
-```xml
-
-<dependency>
-    <groupId>org.apache.commons</groupId>
-    <artifactId>commons-dbcp2</artifactId>
-    <version>2.9.0</version>
-</dependency>
-```
-
-##### Gradle
-
-**Kotlin DSL**：
-
-```kotlin
-dependencies {
-    // Druid
-    implementation("com.alibaba:druid:1.2.8")
-
-    // 或 HikariCP
-    implementation("com.zaxxer:HikariCP:5.0.1")
-
-    // 或 Apache DBCP2
-    implementation("org.apache.commons:commons-dbcp2:2.9.0")
-}
-```
-
-如果不添加任何连接池依赖，starter 将使用 Spring 的 DriverManagerDataSource 作为兜底方案。
-
-#### 2. 配置数据库连接
-
-在 `application.yml` 或 `application.properties` 中配置 TDengine 连接信息：
+最简单的方式是使用 Spring Boot 的标准数据源配置：
 
 ##### application.yml 示例
 
 ```yaml
+spring:
+  datasource:
+    url: jdbc:TAOS://localhost:6030/test
+    username: root
+    password: taosdata
+    driver-class-name: com.taosdata.jdbc.TSDBDriver
+
 td-orm:
   enabled: true  # 可选，默认为 true
-  url: jdbc:TAOS://localhost:6030/test
-  username: root
-  password: taosdata
-  driver-class-name: com.taosdata.jdbc.TSDBDriver
   log-level: ERROR  # 日志级别：ERROR, WARN, INFO, DEBUG
+  page-size: 500  # 批量操作分页大小，默认 500
+  enable-ts-auto-fill: true  # 是否启用 ts 字段自动填充，默认 true
 ```
 
 ##### application.properties 示例
 
 ```properties
+spring.datasource.url=jdbc:TAOS://localhost:6030/test
+spring.datasource.username=root
+spring.datasource.password=taosdata
+spring.datasource.driver-class-name=com.taosdata.jdbc.TSDBDriver
+
 td-orm.enabled=true
-td-orm.url=jdbc:TAOS://localhost:6030/test
-td-orm.username=root
-td-orm.password=taosdata
-td-orm.driver-class-name=com.taosdata.jdbc.TSDBDriver
 td-orm.log-level=ERROR
+td-orm.page-size=500
 ```
 
-#### 3. 使用 TdTemplate
+#### 方式二：自定义 DataSource Bean
+
+如果需要更精细的连接池控制，可以自定义 DataSource Bean：
+
+##### 使用 HikariCP
+
+```java
+@Configuration
+public class TdengineDataSourceConfig {
+
+    @Bean
+    @Primary
+    public DataSource dataSource() {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:TAOS://localhost:6030/test");
+        config.setUsername("root");
+        config.setPassword("taosdata");
+        config.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
+
+        // 自定义连接池配置
+        config.setMaximumPoolSize(30);
+        config.setMinimumIdle(10);
+        config.setConnectionTimeout(30000);
+        config.setIdleTimeout(600000);
+        config.setMaxLifetime(1800000);
+
+        return new HikariDataSource(config);
+    }
+}
+```
+
+##### 使用 Druid
+
+```java
+@Configuration
+public class TdengineDataSourceConfig {
+
+    @Bean
+    @Primary
+    public DataSource dataSource() {
+        DruidDataSource dataSource = new DruidDataSource();
+        dataSource.setUrl("jdbc:TAOS://localhost:6030/test");
+        dataSource.setUsername("root");
+        dataSource.setPassword("taosdata");
+        dataSource.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
+
+        // 自定义连接池配置
+        dataSource.setInitialSize(10);
+        dataSource.setMaxActive(50);
+        dataSource.setMinIdle(10);
+        dataSource.setMaxWait(30000);
+        dataSource.setValidationQuery("SELECT 1");
+        dataSource.setTestWhileIdle(true);
+
+        return dataSource;
+    }
+}
+```
+
+### 使用 TdTemplate
 
 在你的服务类中注入和使用 `TdTemplate`：
 
@@ -358,10 +366,6 @@ public class SensorData {
 ```yaml
 td-orm:
   enabled: true
-  url: jdbc:TAOS://localhost:6030/test
-  username: root
-  password: taosdata
-  driver-class-name: com.taosdata.jdbc.TSDBDriver
   log-level: ERROR
   enable-ts-auto-fill: true  # 是否启用ts字段自动填充，默认为true
 ```
@@ -412,110 +416,13 @@ public class CustomMetaObjectHandler implements MetaObjectHandler {
 
 #### Bean 创建
 
-该 starter 会自动创建以下 Bean：
+该 starter 会自动创建以下 Bean（基于用户提供的 DataSource）：
 
-- `tdengineDataSource` - TDengine 数据源
 - `tdengineJdbcTemplate` - TDengine 专用的 JdbcTemplate
 - `tdengineNamedParameterJdbcTemplate` - TDengine 专用的 NamedParameterJdbcTemplate
 - `tdTemplate` - TDengine 数据访问模板类
 
-#### 连接池选择逻辑
-
-1. 检测 classpath 中是否存在 Druid 相关类，如果存在则创建 Druid DataSource
-2. 如果没有 Druid，检测是否存在 HikariCP，如果存在则创建 HikariCP DataSource
-3. 如果没有 HikariCP，检测是否存在 DBCP2，如果存在则创建 DBCP2 DataSource
-4. 如果都没有，使用 Spring 的 DriverManagerDataSource
-
-#### 连接池配置
-
-#### 自定义连接池
-
-如果你需要自定义连接池配置，可以创建自己的 DataSource bean。只要将 bean 命名为 `tdengineDataSource`，starter
-就会使用你的自定义配置。以下是具体方法：
-
-##### 示例：自定义 HikariCP 配置
-
-```java
-
-@Configuration
-public class CustomDataSourceConfig {
-
-    @Bean("tdengineDataSource")
-    public DataSource tdengineDataSource() {
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:TAOS://localhost:6030/test");
-        config.setUsername("root");
-        config.setPassword("taosdata");
-        config.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
-
-        // 自定义连接池配置
-        config.setMaximumPoolSize(30);
-        config.setMinimumIdle(10);
-        config.setConnectionTimeout(30000);
-        config.setIdleTimeout(600000);
-        config.setMaxLifetime(1800000);
-
-        return new HikariDataSource(config);
-    }
-}
-```
-
-##### 示例：自定义 Druid 配置
-
-```java
-
-@Configuration
-public class CustomDataSourceConfig {
-
-    @Bean("tdengineDataSource")
-    public DataSource tdengineDataSource() {
-        DruidDataSource dataSource = new DruidDataSource();
-        dataSource.setUrl("jdbc:TAOS://localhost:6030/test");
-        dataSource.setUsername("root");
-        dataSource.setPassword("taosdata");
-        dataSource.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
-
-        // 自定义连接池配置
-        dataSource.setInitialSize(10);
-        dataSource.setMaxActive(50);
-        dataSource.setMinIdle(10);
-        dataSource.setMaxWait(30000);
-        dataSource.setValidationQuery("SELECT 1");
-        dataSource.setTestWhileIdle(true);
-
-        return dataSource;
-    }
-}
-```
-
-#### 默认配置
-
-如果不提供自定义的 DataSource bean，starter 将使用以下默认值：
-
-##### Druid 默认配置
-
-- initialSize: 5
-- maxActive: 20
-- minIdle: 5
-- maxWait: 60000ms
-- validationQuery: "SELECT 1"
-- testWhileIdle: true
-
-##### HikariCP 默认配置
-
-- maximumPoolSize: 20
-- minimumIdle: 5
-- connectionTimeout: 30000ms
-- idleTimeout: 600000ms
-- maxLifetime: 1800000ms
-
-##### DBCP2 默认配置
-
-- initialSize: 5
-- maxTotal: 20
-- minIdle: 5
-- maxIdle: 10
-- maxWaitMillis: 60000ms
+> 💡 **注意**：从 2.x 版本开始，框架不再自动创建 DataSource，需要用户自行配置数据源。
 
 ### 禁用自动配置
 
@@ -540,10 +447,9 @@ public class Application {
 
 ### 注意事项
 
-1. 确保 TDengine 服务正在运行并且连接配置正确
-2. 如果同时引入多个连接池，将按照优先级选择一个
-3. 连接池的高级配置可以通过自定义 DataSource Bean 来覆盖默认配置
-4. 该 starter 与 Spring Boot 的自动配置兼容，不会冲突
+1. 确保 TDengine 服务正在运行并且数据源配置正确
+2. 框架依赖用户提供的 DataSource，请确保已正确配置数据源
+3. 该 starter 与 Spring Boot 的自动配置兼容，不会冲突
 
 ### 构建说明
 
