@@ -1,6 +1,8 @@
 package com.zephyrcicd.tdengineorm.config;
 
+import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -20,7 +22,6 @@ import javax.sql.DataSource;
 @EnableConfigurationProperties(TdOrmConfig.class)
 public class TdOrmAutoConfiguration {
 
-
     /**
      * 创建 TdTemplate
      * <p>
@@ -35,4 +36,15 @@ public class TdOrmAutoConfiguration {
     public TdTemplate tdTemplate(DataSource dataSource, TdOrmConfig tdOrmConfig) {
         return TdTemplate.getInstance(new NamedParameterJdbcTemplate(dataSource), tdOrmConfig);
     }
+
+
+        /**
+     * 创建 TagOrderCacheManager
+     * 自动从 URL 中提取数据库名称，或使用配置的 databaseName
+     */
+    @Bean
+    @ConditionalOnBean(TdTemplate.class)
+    @ConditionalOnMissingBean(TagOrderCacheManager.class)
+    public TagOrderCacheManager tagOrderCacheManager(TdTemplate tdTemplate) {
+        return new TagOrderCacheManager(tdTemplate);
 }
