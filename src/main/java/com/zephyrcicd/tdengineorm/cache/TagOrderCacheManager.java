@@ -7,9 +7,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Tag 顺序缓存管理器
@@ -52,17 +50,13 @@ public class TagOrderCacheManager {
             // DESCRIBE 命令可以直接使用表名，连接时已指定数据库
             String sql = "DESCRIBE `" + superTableName + "`";
 
-            List<String> tagList = npJdbc.query(
-                    sql,
-                    Collections.emptyMap(),
-                    (rs, rowNum) -> {
-                        String note = rs.getString("Note");
-                        if ("TAG".equalsIgnoreCase(note)) {
-                            return rs.getString("Field");
-                        }
-                        return null;
-                    }
-            ).stream().filter(Objects::nonNull).collect(Collectors.toList());
+            List<Map<String, Object>> rows = npJdbc.queryForList(sql, Collections.emptyMap());
+
+            // 过滤出 Note 列为 "TAG" 的行，并提取 Field 列
+            List<String> tagList = rows.stream()
+                    .filter(row -> "TAG".equals(row.get("Note")))
+                    .map(row -> (String) row.get("Field"))
+                    .collect(java.util.stream.Collectors.toList());
 
             if (log.isDebugEnabled()) {
                 log.debug("Loaded tag order for stable '{}': {}", superTableName, tagList);

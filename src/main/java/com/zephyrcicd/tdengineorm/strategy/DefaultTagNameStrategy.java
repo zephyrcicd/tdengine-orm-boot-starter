@@ -1,7 +1,6 @@
 package com.zephyrcicd.tdengineorm.strategy;
 
 import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
-import com.zephyrcicd.tdengineorm.util.FieldUtil;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.util.Pair;
@@ -40,7 +39,7 @@ public class DefaultTagNameStrategy<T> implements DynamicNameStrategy<T> {
         // 创建字段名到下划线格式的映射
         Map<String, Pair<String, String>> tagMap = tagPairs.stream()
                 .collect(Collectors.toMap(
-                        pair -> FieldUtil.toUnderlineCase(pair.getFirst()),
+                        Pair::getFirst,
                         pair -> pair,
                         (a, b) -> a
                 ));

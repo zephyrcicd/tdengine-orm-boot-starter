@@ -649,7 +649,7 @@ public class TdSqlUtil {
                 .map(field -> {
                     Object fieldValue = getFieldValue(obj, field);
                     String valueStr = fieldValue == null ? "unknown" : fieldValue.toString();
-                    return Pair.of(field.getName(), valueStr);
+                    return Pair.of(TdSqlUtil.getColumnName(field), valueStr);
                 })
                 .collect(Collectors.toList());
     }
