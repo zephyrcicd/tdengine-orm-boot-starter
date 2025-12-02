@@ -1,10 +1,8 @@
 package com.zephyrcicd.tdengineorm.integration;
 
 import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
-import com.zephyrcicd.tdengineorm.config.TdOrmConfig;
 import com.zephyrcicd.tdengineorm.entity.Acquisition;
 import com.zephyrcicd.tdengineorm.strategy.DefaultTagNameStrategy;
-import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -17,10 +15,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
@@ -39,9 +38,8 @@ class TagOrderIntegrationTest {
     static void setUpAll() throws Exception {
         // Mock NamedParameterJdbcTemplate
         NamedParameterJdbcTemplate namedParameterJdbcTemplate = Mockito.mock(NamedParameterJdbcTemplate.class);
-
-        // 模拟 DESCRIBE 查询返回的 tag 顺序
-        List<String> tagFields = Arrays.asList("energy_type_code", "product_id", "device_id");
+        // 创建 TagOrderCacheManager
+        tagOrderCacheManager = new TagOrderCacheManager(namedParameterJdbcTemplate);
         when(namedParameterJdbcTemplate.query(
                 anyString(),
                 anyMap(),
@@ -57,20 +55,6 @@ class TagOrderIntegrationTest {
                     simulateRowMapper(rowMapper, "device_id", "TAG")
             );
         });
-
-        // 创建配置对象
-        TdOrmConfig tdOrmConfig = new TdOrmConfig();
-
-        // 创建 TdTemplate
-        TdTemplate tdTemplate = TdTemplate.getInstance(
-                namedParameterJdbcTemplate,
-                tdOrmConfig,
-                null,  // MetaObjectHandler - 测试不需要
-                null   // TdSqlInterceptorChain - 测试不需要
-        );
-
-        // 创建 TagOrderCacheManager
-        tagOrderCacheManager = new TagOrderCacheManager(tdTemplate);
     }
 
     /**

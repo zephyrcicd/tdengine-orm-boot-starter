@@ -18,7 +18,6 @@ import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdWrappers;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -41,14 +40,13 @@ import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
  * @author Zephyr
  */
 @Slf4j
-@Setter
+@Getter
 public class TdTemplate extends AbstractTdJdbcTemplate {
 
-    @Getter
     private final TdOrmConfig tdOrmConfig;
-
-    @Setter
     private TagOrderCacheManager tagOrderCacheManager;
+    private static DefaultTagNameStrategy defaultTagNameStrategy;
+    private static final DefaultDynamicNameStrategy DEFAULT_DYNAMIC_NAME_STRATEGY = new DefaultDynamicNameStrategy();
 
     /**
      * 根据配置获取默认的命名策略
@@ -58,9 +56,9 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      */
     public <T> DynamicNameStrategy<T> getDefaultNamingStrategy() {
         return (DynamicNameStrategy<T>) Optional.of(tdOrmConfig.getNamingStyle())
-                .filter(style -> style == NamingStyleEnum.TAG_JOIN && tagOrderCacheManager != null)
-                .<DynamicNameStrategy<Object>>map(style -> new DefaultTagNameStrategy(tagOrderCacheManager))
-                .orElseGet(DefaultDynamicNameStrategy::new);
+                .filter(style -> style == NamingStyleEnum.TAG_JOIN)
+                .<DynamicNameStrategy<Object>>map(style -> defaultTagNameStrategy)
+                .orElse(DEFAULT_DYNAMIC_NAME_STRATEGY);
     }
 
     /**
@@ -69,9 +67,12 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      * @param namedParameterJdbcTemplate JDBC 模板
      * @param tdOrmConfig                配置
      */
-    public TdTemplate(NamedParameterJdbcTemplate namedParameterJdbcTemplate, TdOrmConfig tdOrmConfig) {
+    public TdTemplate(NamedParameterJdbcTemplate namedParameterJdbcTemplate,
+                      TdOrmConfig tdOrmConfig) {
         super(namedParameterJdbcTemplate);
         this.tdOrmConfig = tdOrmConfig;
+        tagOrderCacheManager = new TagOrderCacheManager(namedParameterJdbcTemplate);
+        defaultTagNameStrategy = new DefaultTagNameStrategy(tagOrderCacheManager);
     }
 
     /**
@@ -87,9 +88,9 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      * @return TdTemplate 实例
      */
     public static TdTemplate getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate,
-                                          TdOrmConfig tdOrmConfig,
-                                          MetaObjectHandler metaObjectHandler,
-                                          TdSqlInterceptorChain sqlInterceptorChain) {
+                                         TdOrmConfig tdOrmConfig,
+                                         MetaObjectHandler metaObjectHandler,
+                                         TdSqlInterceptorChain sqlInterceptorChain) {
         TdTemplate tdTemplate = new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
         tdTemplate.setSqlInterceptorChain(sqlInterceptorChain);
 

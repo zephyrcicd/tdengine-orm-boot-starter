@@ -1,6 +1,5 @@
 package com.zephyrcicd.tdengineorm.config;
 
-import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
 import com.zephyrcicd.tdengineorm.interceptor.LoggingSqlInterceptor;
 import com.zephyrcicd.tdengineorm.interceptor.TdSqlInterceptor;
 import com.zephyrcicd.tdengineorm.interceptor.TdSqlInterceptorChain;
@@ -8,7 +7,6 @@ import com.zephyrcicd.tdengineorm.template.MetaObjectHandler;
 import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import com.zephyrcicd.tdengineorm.template.TsMetaObjectHandler;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -82,26 +80,12 @@ public class TdOrmAutoConfiguration {
                                   TdOrmConfig tdOrmConfig,
                                   ObjectProvider<MetaObjectHandler> metaObjectHandlerProvider,
                                   ObjectProvider<TdSqlInterceptorChain> sqlInterceptorChainProvider) {
+        NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         return TdTemplate.getInstance(
-                new NamedParameterJdbcTemplate(dataSource),
+                namedParameterJdbcTemplate,
                 tdOrmConfig,
                 metaObjectHandlerProvider.getIfAvailable(),
                 sqlInterceptorChainProvider.getIfAvailable()
         );
-    }
-
-
-    /**
-     * 创建 TagOrderCacheManager
-     * 自动从 URL 中提取数据库名称，或使用配置的 databaseName
-     * 创建后注入到 TdTemplate 中，支持动态命名策略
-     */
-    @Bean
-    @ConditionalOnBean(TdTemplate.class)
-    @ConditionalOnMissingBean(TagOrderCacheManager.class)
-    public TagOrderCacheManager tagOrderCacheManager(TdTemplate tdTemplate) {
-        TagOrderCacheManager cacheManager = new TagOrderCacheManager(tdTemplate);
-        tdTemplate.setTagOrderCacheManager(cacheManager);
-        return cacheManager;
     }
 }

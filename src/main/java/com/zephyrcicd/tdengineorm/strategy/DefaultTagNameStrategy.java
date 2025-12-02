@@ -4,7 +4,6 @@ import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.util.Pair;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ import java.util.stream.Stream;
  *
  * @author zjarlin
  */
-@Component
 @RequiredArgsConstructor
 public class DefaultTagNameStrategy implements DynamicNameStrategy<Object> {
     private final TagOrderCacheManager tagOrderCacheManager;
