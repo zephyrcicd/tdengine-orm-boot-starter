@@ -10,10 +10,10 @@ import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
  *
  * @author Zephyr
  */
-public class DefaultDynamicNameStrategy<T> implements DynamicNameStrategy<T> {
+public class DefaultDynamicNameStrategy implements DynamicNameStrategy<Object> {
 
     @Override
-    public String getTableName(T entity) {
+    public String getTableName(Object entity) {
         return TdSqlUtil.getTbName(entity.getClass());
     }
 

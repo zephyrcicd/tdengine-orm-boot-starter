@@ -126,7 +126,7 @@ class TagOrderIntegrationTest {
     @DisplayName("测试 DefaultTagNameStrategy 生成表名")
     void testDefaultTagNameStrategy() {
         // 创建策略实例
-        DefaultTagNameStrategy<Acquisition> strategy = new DefaultTagNameStrategy<>(tagOrderCacheManager);
+        DefaultTagNameStrategy strategy = new DefaultTagNameStrategy(tagOrderCacheManager);
 
         // 创建实体
         Acquisition acquisition = Acquisition.builder()
@@ -160,7 +160,7 @@ class TagOrderIntegrationTest {
         System.out.println("✓ Tag order from DDL: " + tagOrder);
 
         // 创建策略
-        DefaultTagNameStrategy<Acquisition> strategy = new DefaultTagNameStrategy<>(tagOrderCacheManager);
+        DefaultTagNameStrategy strategy = new DefaultTagNameStrategy(tagOrderCacheManager);
 
         // 创建实体
         Acquisition acquisition = Acquisition.builder()
@@ -187,7 +187,7 @@ class TagOrderIntegrationTest {
     @Test
     @DisplayName("测试多个实体生成不同的表名")
     void testMultipleEntitiesDifferentTableNames() {
-        DefaultTagNameStrategy<Acquisition> strategy = new DefaultTagNameStrategy<>(tagOrderCacheManager);
+        DefaultTagNameStrategy strategy = new DefaultTagNameStrategy(tagOrderCacheManager);
 
         Acquisition acquisition1 = Acquisition.builder()
                 .energyTypeCode("ELEC")
