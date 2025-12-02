@@ -1,5 +1,6 @@
 package com.zephyrcicd.tdengineorm.config;
 
+import com.zephyrcicd.tdengineorm.enums.NamingStyleEnum;
 import com.zephyrcicd.tdengineorm.enums.TdLogLevelEnum;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -46,4 +47,13 @@ public class TdOrmConfig {
      * </p>
      */
     private boolean enableSqlInterceptor = true;
+
+    /**
+     * 命名风格
+     * <p>
+     * DEFAULT: 使用超级表名作为表名
+     * TAG_JOIN: 使用超级表名 + Tag字段值拼接（需要 TagOrderCacheManager 支持）
+     * </p>
+     */
+    private NamingStyleEnum namingStyle = NamingStyleEnum.TAG_JOIN;
 }

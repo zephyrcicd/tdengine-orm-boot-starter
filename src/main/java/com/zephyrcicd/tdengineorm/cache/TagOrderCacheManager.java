@@ -1,6 +1,5 @@
 package com.zephyrcicd.tdengineorm.cache;
 
-import com.zephyrcicd.tdengineorm.template.TdTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -20,11 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class TagOrderCacheManager {
 
-    private final TdTemplate tdTemplate;
+    private final NamedParameterJdbcTemplate npJdbc;
     private final Map<String, List<String>> tagOrderCache = new ConcurrentHashMap<>();
 
-    public TagOrderCacheManager(TdTemplate tdTemplate) {
-        this.tdTemplate = tdTemplate;
+    public TagOrderCacheManager(NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+        this.npJdbc = namedParameterJdbcTemplate;
     }
 
     /**
@@ -45,8 +44,6 @@ public class TagOrderCacheManager {
      */
     private List<String> queryTagOrderFromDatabase(String superTableName) {
         try {
-            NamedParameterJdbcTemplate npJdbc = tdTemplate.getNamedParameterJdbcTemplate();
-
             // DESCRIBE 命令可以直接使用表名，连接时已指定数据库
             String sql = "DESCRIBE `" + superTableName + "`";
 

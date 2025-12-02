@@ -4,7 +4,6 @@ import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.util.Pair;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
@@ -20,9 +19,8 @@ import java.util.stream.Stream;
  *
  * @author zjarlin
  */
-@Component
 @RequiredArgsConstructor
-public class DefaultTagNameStrategy<T> implements DynamicNameStrategy<T> {
+public class DefaultTagNameStrategy implements DynamicNameStrategy<Object> {
     private final TagOrderCacheManager tagOrderCacheManager;
     /**
      * 按照 DDL 定义的顺序对 tag 字段进行排序
@@ -52,7 +50,7 @@ public class DefaultTagNameStrategy<T> implements DynamicNameStrategy<T> {
     }
 
     @Override
-    public String getTableName(T entity) {
+    public String getTableName(Object entity) {
         String superTableName = TdSqlUtil.getTbName(entity.getClass());
         List<Pair<String, String>> allTagFieldsPair = TdSqlUtil.getAllTagFieldsPairOrdered(entity);
 

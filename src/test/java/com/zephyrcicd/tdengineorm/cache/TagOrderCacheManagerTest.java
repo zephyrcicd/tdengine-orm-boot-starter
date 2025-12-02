@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.util.*;
@@ -24,7 +23,7 @@ import static org.mockito.Mockito.when;
 class TagOrderCacheManagerTest {
 
     private TdTemplate tdTemplate;
-    private JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private List<Map<String, Object>> mockDescribeResult;
     private TagOrderCacheManager tagOrderCacheManager;
 
@@ -40,14 +39,17 @@ class TagOrderCacheManagerTest {
     @BeforeEach
     void setUp() {
         // 每个测试创建新的 mock 对象
-        jdbcTemplate = Mockito.mock(JdbcTemplate.class);
-        NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        // 关键修复：直接 mock NamedParameterJdbcTemplate 而不是 JdbcTemplate
+        namedParameterJdbcTemplate = Mockito.mock(NamedParameterJdbcTemplate.class);
+
         tdTemplate = TdTemplate.getInstance(
                 namedParameterJdbcTemplate,
                 new TdOrmConfig(),
                 null,  // MetaObjectHandler - 测试不需要
                 null   // TdSqlInterceptorChain - 测试不需要
         );
+
+        tagOrderCacheManager = tdTemplate.getTagOrderCacheManager();
 
         // 模拟 DESCRIBE 查询返回的结果
         mockDescribeResult = Arrays.asList(
@@ -59,15 +61,24 @@ class TagOrderCacheManagerTest {
         );
 
         // 设置 mock 行为
-        when(jdbcTemplate.queryForList("DESCRIBE `iot_data`.`acquisition`")).thenReturn(mockDescribeResult);
-        when(jdbcTemplate.queryForList("DESCRIBE `iot_data`.`non_existent_table_xyz`"))
-                .thenThrow(new RuntimeException("Table not found"));
+        // 关键修复：使用正确的 SQL 格式（无数据库前缀），并且mock正确的方法签名
+        when(namedParameterJdbcTemplate.queryForList(
+                Mockito.eq("DESCRIBE `acquisition`"),
+                Mockito.anyMap()
+        )).thenReturn(mockDescribeResult);
 
-        tagOrderCacheManager = new TagOrderCacheManager(tdTemplate);
+        when(namedParameterJdbcTemplate.queryForList(
+                Mockito.eq("DESCRIBE `non_existent_table_xyz`"),
+                Mockito.anyMap()
+        )).thenThrow(new RuntimeException("Table not found"));
+
+        // 移除无效的 mock：不能 mock 真实对象的方法
+        // when(tagOrderCacheManager.getTagOrder("acquisition"))...
+
     }
 
     @Test
-//    @DisplayName("测试从数据库查询 tag 顺序")
+    @DisplayName("测试从数据库查询 tag 顺序")
     void testQueryTagOrderFromDatabase() {
         // 测试查询 acquisition 表的 tag 顺序
         List<String> tagOrder = tagOrderCacheManager.getTagOrder("acquisition");
@@ -199,9 +210,9 @@ class TagOrderCacheManagerTest {
     @Test
     @DisplayName("测试 DESCRIBE 命令执行")
     void testDescribeCommand() {
-        // 直接测试 DESCRIBE 命令
-        String sql = "DESCRIBE `iot_data`.`acquisition`";
-        List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+        // 直接测试 DESCRIBE 命令（使用 mock 的 NamedParameterJdbcTemplate）
+        String sql = "DESCRIBE `acquisition`";
+        List<java.util.Map<String, Object>> rows = namedParameterJdbcTemplate.queryForList(sql, Collections.emptyMap());
 
         assertNotNull(rows);
         assertFalse(rows.isEmpty());

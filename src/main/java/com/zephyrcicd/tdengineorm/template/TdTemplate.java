@@ -1,13 +1,16 @@
 package com.zephyrcicd.tdengineorm.template;
 
+import com.zephyrcicd.tdengineorm.cache.TagOrderCacheManager;
 import com.zephyrcicd.tdengineorm.config.TdOrmConfig;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.constant.TdSqlConstant;
 import com.zephyrcicd.tdengineorm.dto.Page;
+import com.zephyrcicd.tdengineorm.enums.NamingStyleEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
 import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.interceptor.TdSqlInterceptorChain;
 import com.zephyrcicd.tdengineorm.strategy.DefaultDynamicNameStrategy;
+import com.zephyrcicd.tdengineorm.strategy.DefaultTagNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.util.AssertUtil;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
@@ -15,7 +18,6 @@ import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdWrappers;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -38,11 +40,26 @@ import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
  * @author Zephyr
  */
 @Slf4j
-@Setter
+@Getter
 public class TdTemplate extends AbstractTdJdbcTemplate {
 
-    @Getter
     private final TdOrmConfig tdOrmConfig;
+    private TagOrderCacheManager tagOrderCacheManager;
+    private static DefaultTagNameStrategy defaultTagNameStrategy;
+    private static final DefaultDynamicNameStrategy DEFAULT_DYNAMIC_NAME_STRATEGY = new DefaultDynamicNameStrategy();
+
+    /**
+     * 根据配置获取默认的命名策略
+     *
+     * @param <T> 实体类型
+     * @return 命名策略
+     */
+    public <T> DynamicNameStrategy<T> getDefaultNamingStrategy() {
+        return (DynamicNameStrategy<T>) Optional.of(tdOrmConfig.getNamingStyle())
+                .filter(style -> style == NamingStyleEnum.TAG_JOIN)
+                .<DynamicNameStrategy<Object>>map(style -> defaultTagNameStrategy)
+                .orElse(DEFAULT_DYNAMIC_NAME_STRATEGY);
+    }
 
     /**
      * 构造函数
@@ -50,9 +67,12 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      * @param namedParameterJdbcTemplate JDBC 模板
      * @param tdOrmConfig                配置
      */
-    public TdTemplate(NamedParameterJdbcTemplate namedParameterJdbcTemplate, TdOrmConfig tdOrmConfig) {
+    public TdTemplate(NamedParameterJdbcTemplate namedParameterJdbcTemplate,
+                      TdOrmConfig tdOrmConfig) {
         super(namedParameterJdbcTemplate);
         this.tdOrmConfig = tdOrmConfig;
+        tagOrderCacheManager = new TagOrderCacheManager(namedParameterJdbcTemplate);
+        defaultTagNameStrategy = new DefaultTagNameStrategy(tagOrderCacheManager);
     }
 
     /**
@@ -68,9 +88,9 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      * @return TdTemplate 实例
      */
     public static TdTemplate getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate,
-                                          TdOrmConfig tdOrmConfig,
-                                          MetaObjectHandler metaObjectHandler,
-                                          TdSqlInterceptorChain sqlInterceptorChain) {
+                                         TdOrmConfig tdOrmConfig,
+                                         MetaObjectHandler metaObjectHandler,
+                                         TdSqlInterceptorChain sqlInterceptorChain) {
         TdTemplate tdTemplate = new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
         tdTemplate.setSqlInterceptorChain(sqlInterceptorChain);
 
@@ -400,7 +420,7 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
     }
 
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList) {
-        return batchInsert(clazz, entityList, tdOrmConfig.getPageSize(), new DefaultDynamicNameStrategy<>());
+        return batchInsert(clazz, entityList, tdOrmConfig.getPageSize(), getDefaultNamingStrategy());
     }
 
 
@@ -637,7 +657,7 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      * @return 每批插入影响的行数数组
      */
     public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList) {
-        return batchInsertUsing(clazz, entityList, tdOrmConfig.getPageSize(), new DefaultDynamicNameStrategy<>());
+        return batchInsertUsing(clazz, entityList, tdOrmConfig.getPageSize(), getDefaultNamingStrategy());
     }
 
     /**
