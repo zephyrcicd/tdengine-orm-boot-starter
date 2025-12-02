@@ -4,20 +4,17 @@ import com.zephyrcicd.tdengineorm.config.TdOrmConfig;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.constant.TdSqlConstant;
 import com.zephyrcicd.tdengineorm.dto.Page;
-import com.zephyrcicd.tdengineorm.enums.TdLogLevelEnum;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
 import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
-import com.zephyrcicd.tdengineorm.mapper.TdColumnRowMapper;
+import com.zephyrcicd.tdengineorm.interceptor.TdSqlInterceptorChain;
 import com.zephyrcicd.tdengineorm.strategy.DefaultDynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.util.AssertUtil;
-import com.zephyrcicd.tdengineorm.util.JsonUtil;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdWrappers;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInterceptor;
@@ -42,21 +39,48 @@ import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
  */
 @Slf4j
 @Setter
-@RequiredArgsConstructor
-public class TdTemplate {
+public class TdTemplate extends AbstractTdJdbcTemplate {
 
     @Getter
-    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final TdOrmConfig tdOrmConfig;
 
-    public static TdTemplate getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate, TdOrmConfig tdOrmConfig) {
+    /**
+     * 构造函数
+     *
+     * @param namedParameterJdbcTemplate JDBC 模板
+     * @param tdOrmConfig                配置
+     */
+    public TdTemplate(NamedParameterJdbcTemplate namedParameterJdbcTemplate, TdOrmConfig tdOrmConfig) {
+        super(namedParameterJdbcTemplate);
+        this.tdOrmConfig = tdOrmConfig;
+    }
+
+    /**
+     * 创建 TdTemplate 实例（新版工厂方法）
+     * <p>
+     * 支持 SQL 拦截器链和 MetaObjectHandler。
+     * </p>
+     *
+     * @param namedParameterJdbcTemplate JDBC 模板
+     * @param tdOrmConfig                配置
+     * @param metaObjectHandler          元对象处理器（可为 null）
+     * @param sqlInterceptorChain        SQL 拦截器链（可为 null）
+     * @return TdTemplate 实例
+     */
+    public static TdTemplate getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate,
+                                          TdOrmConfig tdOrmConfig,
+                                          MetaObjectHandler metaObjectHandler,
+                                          TdSqlInterceptorChain sqlInterceptorChain) {
         TdTemplate tdTemplate = new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
-        // 根据配置决定是否启用代理对象（为了实现部分增强功能，如自动填入ts）
-        if (tdOrmConfig.isEnableTsAutoFill()) {
-            return createDefaultProxy(tdTemplate, new TdTemplateMethodInterceptor(new TsMetaObjectHandler()));
+        tdTemplate.setSqlInterceptorChain(sqlInterceptorChain);
+
+        // 如果有 MetaObjectHandler，创建代理进行实体填充
+        if (metaObjectHandler != null) {
+            return createDefaultProxy(tdTemplate, new TdTemplateMethodInterceptor(metaObjectHandler));
         }
         return tdTemplate;
     }
+
 
     /**
      * 创建代理增强的TdTemplate实例
@@ -102,7 +126,7 @@ public class TdTemplate {
         }
         String tagColumnSql = TdSqlUtil.buildCreateColumn(tagFieldList, null);
         finalSql += SqlConstant.BLANK + TdSqlConstant.TAGS + tagColumnSql;
-        return updateWithTdLog(finalSql, new HashMap<>(0));
+        return updateWithInterceptor(finalSql, new HashMap<>(0));
     }
 
     /**
@@ -141,7 +165,7 @@ public class TdTemplate {
     public <T, R> R getOne(AbstractTdQueryWrapper<T> wrapper, Class<R> resultClass) {
         String sql = wrapper.getSql();
         Map<String, Object> paramsMap = wrapper.getParamsMap();
-        return getOneWithTdLog(resultClass, sql, paramsMap);
+        return getOneWithInterceptor(resultClass, sql, paramsMap);
     }
 
     /**
@@ -171,12 +195,7 @@ public class TdTemplate {
     public <T> Map<String, Object> getOneAsMap(AbstractTdQueryWrapper<T> wrapper) {
         String sql = wrapper.getSql();
         Map<String, Object> paramsMap = wrapper.getParamsMap();
-        tdLog(sql, paramsMap);
-        List<Map<String, Object>> list = namedParameterJdbcTemplate.queryForList(sql, paramsMap);
-        if (CollectionUtils.isEmpty(list)) {
-            return null;
-        }
-        return list.get(0);
+        return getOneAsMapWithInterceptor(sql, paramsMap);
     }
 
 
@@ -192,7 +211,7 @@ public class TdTemplate {
 
 
     public <T, R> List<R> list(AbstractTdQueryWrapper<T> wrapper, Class<R> resultClass) {
-        return listWithTdLog(wrapper.getSql(), wrapper.getParamsMap(), resultClass);
+        return listWithInterceptor(wrapper.getSql(), wrapper.getParamsMap(), resultClass);
     }
 
     /**
@@ -216,8 +235,7 @@ public class TdTemplate {
     public <T> List<Map<String, Object>> listAsMap(AbstractTdQueryWrapper<T> wrapper) {
         String sql = wrapper.getSql();
         Map<String, Object> paramsMap = wrapper.getParamsMap();
-        tdLog(sql, paramsMap);
-        return namedParameterJdbcTemplate.queryForList(sql, paramsMap);
+        return listAsMapWithInterceptor(sql, paramsMap);
     }
 
     public <T> Page<T> page(long pageNo, long pageSize, TdQueryWrapper<T> wrapper) {
@@ -228,13 +246,13 @@ public class TdTemplate {
         // 构建安全的计数查询SQL
         String innerSql = wrapper.getSql();
         String countSql = "SELECT COUNT(*) FROM (" + innerSql + ") t";
-        Long count = namedParameterJdbcTemplate.queryForObject(countSql, wrapper.getParamsMap(), Long.class);
+        Long count = countWithInterceptor(countSql, wrapper.getParamsMap());
         Page<R> page = Page.<R>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
                 .total(count).build();
         if (count != null && count > 0) {
-            List<R> list = listWithTdLog(wrapper.limit(pageNo, pageSize).getSql(), wrapper.getParamsMap(), resultClass);
+            List<R> list = listWithInterceptor(wrapper.limit(pageNo, pageSize).getSql(), wrapper.getParamsMap(), resultClass);
             page.setDataList(list);
         }
         return page;
@@ -252,12 +270,7 @@ public class TdTemplate {
         String countSql = "SELECT COUNT(*) FROM (" + innerSql + ") t";
         Map<String, Object> paramsMap = wrapper.getParamsMap();
 
-        // 记录日志
-        tdLog(countSql, paramsMap);
-
-        // 执行查询
-        Long count = namedParameterJdbcTemplate.queryForObject(countSql, paramsMap, Long.class);
-        return count != null ? count : 0L;
+        return countWithInterceptor(countSql, paramsMap);
     }
 
     /**
@@ -321,7 +334,7 @@ public class TdTemplate {
         Map<String, Object> paramsMap = new HashMap<>(noTagFieldList.size());
 
         String sql = SqlConstant.INSERT_INTO + addSingleQuotes(tbName) + TdSqlUtil.joinColumnNamesAndValuesSql(object, noTagFieldList, paramsMap);
-        return updateWithTdLog(sql, paramsMap);
+        return updateWithInterceptor(sql, paramsMap);
     }
 
 
@@ -356,7 +369,7 @@ public class TdTemplate {
         sql.deleteCharAt(sql.length() - 1);
         valueSql.deleteCharAt(valueSql.length() - 1).append(SqlConstant.RIGHT_BRACKET);
         sql.append(valueSql);
-        return updateWithTdLog(sql.toString(), dataMap);
+        return updateWithInterceptor(sql.toString(), dataMap);
     }
 
 
@@ -383,7 +396,7 @@ public class TdTemplate {
         String finalSql = finalSqlAndParamsMapPair.getFirst();
         Map<String, Object> paramsMap = finalSqlAndParamsMapPair.getSecond();
 
-        return updateWithTdLog(finalSql, paramsMap);
+        return updateWithInterceptor(finalSql, paramsMap);
     }
 
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList) {
@@ -467,7 +480,7 @@ public class TdTemplate {
                 StringBuilder insertIntoSql = TdSqlUtil.getInsertIntoSqlPrefix(tbName, fieldList);
                 StringBuilder finalSql = new StringBuilder(insertIntoSql);
                 joinInsetSqlSuffix(list, finalSql, paramsMap);
-                int singleResult = namedParameterJdbcTemplate.update(finalSql.toString(), paramsMap);
+                int singleResult = updateWithInterceptor(finalSql.toString(), paramsMap);
                 if (log.isDebugEnabled()) {
                     log.debug("{} ===== execute result ====>{}", finalSql, singleResult);
                 }
@@ -720,8 +733,7 @@ public class TdTemplate {
                 StringBuilder finalSql = new StringBuilder(TdSqlUtil.getInsertUsingSqlPrefix(firstEntity,
                         TdSqlUtil.getExistFields(clazz), dynamicTbNameStrategy, paramsMap));
                 joinInsetSqlSuffix(list, finalSql, paramsMap);
-
-                int singleResult = namedParameterJdbcTemplate.update(finalSql.toString(), paramsMap);
+                int singleResult = updateWithInterceptor(finalSql.toString(), paramsMap);
                 if (log.isDebugEnabled()) {
                     log.debug("{} =====execute result====>{}", finalSql, singleResult);
                 }
@@ -737,7 +749,7 @@ public class TdTemplate {
         String sql = "DELETE FROM " + tbName + " WHERE ts = :ts";
         Map<String, Object> paramsMap = new HashMap<>(1);
         paramsMap.put("ts", ts);
-        return namedParameterJdbcTemplate.update(sql, paramsMap);
+        return updateWithInterceptor(sql, paramsMap);
     }
 
     public <T> int batchDeleteByTs(Class<T> clazz, List<Long> tsList) {
@@ -745,61 +757,7 @@ public class TdTemplate {
         String sql = "DELETE FROM " + tbName + " WHERE ts IN (:tsList)";
         Map<String, Object> paramsMap = new HashMap<>(1);
         paramsMap.put("tsList", tsList);
-        return namedParameterJdbcTemplate.update(sql, paramsMap);
-    }
-
-
-    private void tdLog(String sql, Map<String, Object> paramsMap) {
-        TdLogLevelEnum tdLogLevelEnum = tdOrmConfig == null ? null : tdOrmConfig.getLogLevel();
-        if (tdLogLevelEnum == null) {
-            return;
-        }
-        String logFormat = "【TDengineMapperLog】 \n【SQL】 : {} \n【Params】: {}";
-        String paramsJson = JsonUtil.toJson(paramsMap);
-        switch (tdLogLevelEnum) {
-            case DEBUG:
-                if (log.isDebugEnabled()) {
-                    log.debug(logFormat, sql, paramsJson);
-                }
-                break;
-            case INFO:
-                log.info(logFormat, sql, paramsJson);
-                break;
-            default:
-        }
-    }
-
-    private int updateWithTdLog(String finalSql, Map<String, Object> paramsMap) {
-        tdLog(finalSql, paramsMap);
-        return namedParameterJdbcTemplate.update(finalSql, paramsMap);
-    }
-
-    private <R> List<R> listWithTdLog(String sql, Map<String, Object> paramsMap, Class<R> resultClass) {
-        tdLog(sql, paramsMap);
-
-        // 不支持 Map.class，提示使用 listAsMap()
-        if (Map.class.isAssignableFrom(resultClass)) {
-            log.error("Map.class is not supported as result type! Please use listAsMap() method instead.");
-            throw new TdOrmException(TdOrmExceptionCode.MAP_TYPE_NOT_SUPPORTED);
-        }
-
-        return namedParameterJdbcTemplate.query(sql, paramsMap, TdColumnRowMapper.getInstance(resultClass));
-    }
-
-    private <R> R getOneWithTdLog(Class<R> resultClass, String sql, Map<String, Object> paramsMap) {
-        tdLog(sql, paramsMap);
-
-        // 不支持 Map.class，提示使用 getOneAsMap()
-        if (Map.class.isAssignableFrom(resultClass)) {
-            log.error("Map.class is not supported as result type! Please use getOneAsMap() method instead.");
-            throw new TdOrmException(TdOrmExceptionCode.MAP_TYPE_NOT_SUPPORTED);
-        }
-
-        List<R> list = namedParameterJdbcTemplate.query(sql, paramsMap, TdColumnRowMapper.getInstance(resultClass));
-        if (CollectionUtils.isEmpty(list)) {
-            return null;
-        }
-        return list.get(0);
+        return updateWithInterceptor(sql, paramsMap);
     }
 
     /**
@@ -891,7 +849,7 @@ public class TdTemplate {
             String valuesSql = buildValuesSql(batch, columnNames, paramsMap, processedCount);
             String sql = sqlPrefix + valuesSql;
 
-            int singleResult = updateWithTdLog(sql, paramsMap);
+            int singleResult = updateWithInterceptor(sql, paramsMap);
             resultList.add(singleResult);
             processedCount += batch.size(); // 更新已处理数量
         }

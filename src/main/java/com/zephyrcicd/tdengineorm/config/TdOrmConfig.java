@@ -36,4 +36,14 @@ public class TdOrmConfig {
      * 默认500
      */
     private int pageSize = 500;
+
+    /**
+     * 是否启用 SQL 拦截器功能，默认开启
+     * <p>
+     * 开启后，所有 SQL 执行都会经过拦截器链处理。
+     * 可以通过实现 {@link com.zephyrcicd.tdengineorm.interceptor.TdSqlInterceptor} 接口
+     * 并注册为 Spring Bean 来添加自定义拦截器。
+     * </p>
+     */
+    private boolean enableSqlInterceptor = true;
 }

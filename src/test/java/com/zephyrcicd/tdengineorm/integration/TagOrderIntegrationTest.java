@@ -62,7 +62,12 @@ class TagOrderIntegrationTest {
         TdOrmConfig tdOrmConfig = new TdOrmConfig();
 
         // 创建 TdTemplate
-        TdTemplate tdTemplate = new TdTemplate(namedParameterJdbcTemplate, tdOrmConfig);
+        TdTemplate tdTemplate = TdTemplate.getInstance(
+                namedParameterJdbcTemplate,
+                tdOrmConfig,
+                null,  // MetaObjectHandler - 测试不需要
+                null   // TdSqlInterceptorChain - 测试不需要
+        );
 
         // 创建 TagOrderCacheManager
         tagOrderCacheManager = new TagOrderCacheManager(tdTemplate);

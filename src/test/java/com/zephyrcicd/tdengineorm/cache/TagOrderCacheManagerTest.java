@@ -42,7 +42,12 @@ class TagOrderCacheManagerTest {
         // 每个测试创建新的 mock 对象
         jdbcTemplate = Mockito.mock(JdbcTemplate.class);
         NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-        tdTemplate = new TdTemplate(namedParameterJdbcTemplate, new TdOrmConfig());
+        tdTemplate = TdTemplate.getInstance(
+                namedParameterJdbcTemplate,
+                new TdOrmConfig(),
+                null,  // MetaObjectHandler - 测试不需要
+                null   // TdSqlInterceptorChain - 测试不需要
+        );
 
         // 模拟 DESCRIBE 查询返回的结果
         mockDescribeResult = Arrays.asList(

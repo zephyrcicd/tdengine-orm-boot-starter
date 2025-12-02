@@ -412,6 +412,69 @@ public class CustomMetaObjectHandler implements MetaObjectHandler {
 }
 ```
 
+### SQL 拦截器
+
+框架提供了灵活的 SQL 拦截器机制，允许用户在 SQL 执行前后添加自定义逻辑，如日志记录、性能监控、审计等。
+
+#### 内置日志拦截器
+
+框架内置了 `LoggingSqlInterceptor`，会根据配置的日志级别自动记录 SQL 执行日志：
+
+```yaml
+td-orm:
+  log-level: DEBUG  # DEBUG/INFO 级别会输出 SQL 日志
+  enable-sql-interceptor: true  # 是否启用 SQL 拦截器，默认 true
+```
+
+#### 自定义拦截器
+
+实现 `TdSqlInterceptor` 接口并注册为 Spring Bean 即可添加自定义拦截逻辑：
+
+```java
+@Component
+public class AuditSqlInterceptor implements TdSqlInterceptor {
+
+    @Override
+    public boolean beforeExecute(TdSqlContext context) {
+        // SQL 执行前的逻辑
+        log.info("Executing SQL: {}", context.getSql());
+        return true;  // 返回 true 继续执行，返回 false 中断执行
+    }
+
+    @Override
+    public void afterExecute(TdSqlContext context, Object result, Throwable ex) {
+        // SQL 执行后的逻辑
+        long duration = System.currentTimeMillis() - context.getStartTime();
+        log.info("SQL completed in {}ms", duration);
+        if (ex != null) {
+            log.error("SQL execution failed: {}", ex.getMessage());
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        // 拦截器执行顺序，数值越小优先级越高
+        return 100;
+    }
+}
+```
+
+#### TdSqlContext 上下文
+
+`TdSqlContext` 提供了 SQL 执行的完整上下文信息：
+
+- `getSql()` - 获取 SQL 语句
+- `getParams()` - 获取 SQL 参数
+- `getSqlType()` - 获取 SQL 类型（UPDATE/QUERY/QUERY_ONE）
+- `getStartTime()` - 获取执行开始时间
+- `getResultClass()` - 获取结果类型（查询时）
+- `getAttributes()` - 获取自定义属性（可在拦截器间传递数据）
+
+#### 拦截器执行顺序
+
+- `beforeExecute`：按 `getOrder()` 从小到大顺序执行
+- `afterExecute`：按 `getOrder()` 从大到小逆序执行（类似栈的 LIFO）
+
 ### 自动配置详情
 
 #### Bean 创建

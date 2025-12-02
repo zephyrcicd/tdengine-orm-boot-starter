@@ -304,13 +304,131 @@ public class SensorData {
 
     @TdColumn(value = "temp", type = TdFieldTypeEnum.DOUBLE)
     private Double temperature;
-    
+
     private Double humidity;
     private Long ts;
 
     // getter/setter methods...
 }
 ```
+
+### Auto Fill Feature
+
+The framework provides auto-fill functionality that automatically fills timestamp fields named `ts`. This feature is enabled by default and can be disabled via configuration.
+
+#### Configuration Options
+
+```yaml
+td-orm:
+  enabled: true
+  log-level: ERROR
+  enable-ts-auto-fill: true  # Enable ts field auto-fill, default true
+```
+
+#### Supported Data Types
+
+Auto-fill supports multiple time types:
+- `Long`/`long` - Millisecond timestamp
+- `Date` - Java Date type
+- `LocalDateTime` - Java 8 DateTime type
+- `LocalDate` - Java 8 Date type
+- `Instant` - Java 8 Instant type
+
+#### Usage Example
+
+Simply define a field named `ts` in your entity class, and the framework will auto-fill it during insertion:
+
+```java
+@TdTable("sensor_data")
+public class SensorData {
+    private Long ts;  // Will be auto-filled with current timestamp
+
+    @TdTag
+    private String deviceId;
+
+    private Double temperature;
+    private Double humidity;
+
+    // getters and setters
+}
+```
+
+#### Custom Fill Logic
+
+To customize fill logic, implement the `MetaObjectHandler` interface:
+
+```java
+@Component
+public class CustomMetaObjectHandler implements MetaObjectHandler {
+    @Override
+    public <T> void insertFill(T object) {
+        // Custom fill logic
+    }
+}
+```
+
+### SQL Interceptor
+
+The framework provides a flexible SQL interceptor mechanism that allows users to add custom logic before and after SQL execution, such as logging, performance monitoring, auditing, etc.
+
+#### Built-in Logging Interceptor
+
+The framework includes `LoggingSqlInterceptor` that automatically logs SQL execution based on the configured log level:
+
+```yaml
+td-orm:
+  log-level: DEBUG  # DEBUG/INFO level will output SQL logs
+  enable-sql-interceptor: true  # Enable SQL interceptor, default true
+```
+
+#### Custom Interceptor
+
+Implement `TdSqlInterceptor` interface and register as a Spring Bean to add custom interception logic:
+
+```java
+@Component
+public class AuditSqlInterceptor implements TdSqlInterceptor {
+
+    @Override
+    public boolean beforeExecute(TdSqlContext context) {
+        // Logic before SQL execution
+        log.info("Executing SQL: {}", context.getSql());
+        return true;  // Return true to continue, false to abort execution
+    }
+
+    @Override
+    public void afterExecute(TdSqlContext context, Object result, Throwable ex) {
+        // Logic after SQL execution
+        long duration = System.currentTimeMillis() - context.getStartTime();
+        log.info("SQL completed in {}ms", duration);
+        if (ex != null) {
+            log.error("SQL execution failed: {}", ex.getMessage());
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        // Interceptor execution order, lower values have higher priority
+        return 100;
+    }
+}
+```
+
+#### TdSqlContext
+
+`TdSqlContext` provides complete context information for SQL execution:
+
+- `getSql()` - Get SQL statement
+- `getParams()` - Get SQL parameters
+- `getSqlType()` - Get SQL type (UPDATE/QUERY/QUERY_ONE)
+- `getStartTime()` - Get execution start time
+- `getResultClass()` - Get result type (for queries)
+- `getAttributes()` - Get custom attributes (for passing data between interceptors)
+
+#### Interceptor Execution Order
+
+- `beforeExecute`: Executed in ascending order by `getOrder()`
+- `afterExecute`: Executed in descending order by `getOrder()` (LIFO like a stack)
 
 ### Auto-Configuration Details
 
