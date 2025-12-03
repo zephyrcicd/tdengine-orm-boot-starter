@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LoggingSqlInterceptor implements TdSqlInterceptor {
 
-    private static final String LOG_FORMAT = "【TDengineMapperLog】 \n【SQL】 : {} \n【Params】: {}";
+    private static final String LOG_FORMAT = "【TD-Orm】 \n【SQL】 : {} \n【Params】: {}";
 
     private final TdOrmConfig config;
 
