@@ -516,23 +516,27 @@ public class TdSqlUtil {
     }
 
     public static String getFieldTypeAndLength(Field field) {
+        return getFieldTypeAndLength(field, false);
+    }
+
+    public static String getTagFieldTypeAndLength(Field field) {
+        return getFieldTypeAndLength(field, true);
+    }
+
+    private static String getFieldTypeAndLength(Field field, boolean isTag) {
         TdColumn tdField = field.getAnnotation(TdColumn.class);
-        TdFieldTypeEnum type = null == tdField ? getColumnTypeByField(field) : tdField.type();
+        TdFieldTypeEnum type = null == tdField ? getColumnTypeByField(field, isTag) : tdField.type();
         if (type.isNeedLengthLimit()) {
-            // 对于需要长度限制的字段类型，根据字段类型设置合理的默认长度，减少用户需要手动指定长度的心智负担
             int defaultLength;
             switch (type) {
-                // 对于String类型（NCHAR等），默认长度为255
                 case NCHAR:
                     defaultLength = 255;
                     break;
-                // 对于二进制类型（BINARY, VARBINARY, VARCHAR等），默认长度为1024字节
                 case BINARY:
                 case VARBINARY:
                 case VARCHAR:
                     defaultLength = 1024;
                     break;
-                // 对于其他需要长度的类型，默认长度为255
                 default:
                     defaultLength = 255;
             }
@@ -543,12 +547,12 @@ public class TdSqlUtil {
         return type.getFiledType();
     }
 
-    private static TdFieldTypeEnum getColumnTypeByField(Field field) {
+    private static TdFieldTypeEnum getColumnTypeByField(Field field, boolean isTag) {
         Class<?> fieldType = field.getType();
-        TdFieldTypeEnum tdFieldTypeEnum = TdFieldTypeEnum.matchByFieldType(fieldType);
+        TdFieldTypeEnum tdFieldTypeEnum = isTag 
+                ? TdFieldTypeEnum.matchByFieldTypeForTag(fieldType) 
+                : TdFieldTypeEnum.matchByFieldType(fieldType);
         if (null == tdFieldTypeEnum) {
-            // 类型匹配不到时，记录警告日志并默认使用NCHAR类型
-            // 大部分情况下使用字符串类型都能正常插入数据
             log.warn("Field [{}] with type [{}] cannot match TDengine field type, using NCHAR as default",
                     field.getName(), fieldType.getName());
             return TdFieldTypeEnum.NCHAR;
@@ -558,9 +562,17 @@ public class TdSqlUtil {
     }
 
     public static String buildCreateColumn(List<Field> fields, Field primaryTsField) {
+        return buildCreateColumn(fields, primaryTsField, false);
+    }
+
+    public static String buildCreateTagColumn(List<Field> fields) {
+        return buildCreateColumn(fields, null, true);
+    }
+
+    private static String buildCreateColumn(List<Field> fields, Field primaryTsField, boolean isTag) {
         fields.remove(primaryTsField);
 
-        // 首位必须是 ts TIMESTAMP
+        // 首位必须是 ts TIMESTAMP（仅普通列）
         String tsColumn = primaryTsField == null ? ""
                 : SqlConstant.HALF_ANGLE_DASH
                 + TdSqlUtil.getColumnName(primaryTsField)
@@ -578,16 +590,18 @@ public class TdSqlUtil {
                     .append(TdSqlUtil.getColumnName(field))
                     .append(SqlConstant.HALF_ANGLE_DASH)
                     .append(SqlConstant.BLANK)
-                    .append(TdSqlUtil.getFieldTypeAndLength(field));
+                    .append(isTag ? TdSqlUtil.getTagFieldTypeAndLength(field) : TdSqlUtil.getFieldTypeAndLength(field));
 
-            // 组合主键，仅支持 TDengine 3.3.x 以上版本
-            TdColumn tableField = field.getAnnotation(TdColumn.class);
-            if (tableField != null && tableField.compositeKey()) {
-                TdTag tdTag = field.getAnnotation(TdTag.class);
-                if (tdTag != null) {
-                    throw new TdOrmException(TdOrmExceptionCode.TAG_FIELD_CAN_NOT_BE_COMPOSITE_FIELD);
+            // 组合主键，仅支持 TDengine 3.3.x 以上版本（tag不支持组合主键）
+            if (!isTag) {
+                TdColumn tableField = field.getAnnotation(TdColumn.class);
+                if (tableField != null && tableField.compositeKey()) {
+                    TdTag tdTag = field.getAnnotation(TdTag.class);
+                    if (tdTag != null) {
+                        throw new TdOrmException(TdOrmExceptionCode.TAG_FIELD_CAN_NOT_BE_COMPOSITE_FIELD);
+                    }
+                    finalSb.append(TdSqlConstant.COMPOSITE_KEY);
                 }
-                finalSb.append(TdSqlConstant.COMPOSITE_KEY);
             }
 
             // 最后一个不用➕逗号
