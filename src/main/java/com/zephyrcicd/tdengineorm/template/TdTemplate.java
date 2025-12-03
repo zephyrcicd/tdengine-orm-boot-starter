@@ -419,6 +419,32 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         return updateWithInterceptor(finalSql, paramsMap);
     }
 
+    @SuppressWarnings("unchecked")
+    private <T> Class<T> inferEntityClass(List<T> entityList) {
+        return (Class<T>) entityList.get(0).getClass();
+    }
+
+    public <T> int[] batchInsertWithoutClass(List<T> entityList) {
+        if (CollectionUtils.isEmpty(entityList)) {
+            return new int[0];
+        }
+        return batchInsert(inferEntityClass(entityList), entityList);
+    }
+
+    public <T> int[] batchInsertWithoutClass(List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+        if (CollectionUtils.isEmpty(entityList)) {
+            return new int[0];
+        }
+        return batchInsert(inferEntityClass(entityList), entityList, dynamicTbNameStrategy);
+    }
+
+    public <T> int[] batchInsertWithoutClass(List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+        if (CollectionUtils.isEmpty(entityList)) {
+            return new int[0];
+        }
+        return batchInsert(inferEntityClass(entityList), entityList, pageSize, dynamicTbNameStrategy);
+    }
+
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList) {
         return batchInsert(clazz, entityList, tdOrmConfig.getPageSize(), getDefaultNamingStrategy());
     }
@@ -633,6 +659,27 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         }
 
         return resultList.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    public <T> int[] batchInsertUsingWithoutClass(List<T> entityList) {
+        if (CollectionUtils.isEmpty(entityList)) {
+            return new int[0];
+        }
+        return batchInsertUsing(inferEntityClass(entityList), entityList);
+    }
+
+    public <T> int[] batchInsertUsingWithoutClass(List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+        if (CollectionUtils.isEmpty(entityList)) {
+            return new int[0];
+        }
+        return batchInsertUsing(inferEntityClass(entityList), entityList, dynamicTbNameStrategy);
+    }
+
+    public <T> int[] batchInsertUsingWithoutClass(List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+        if (CollectionUtils.isEmpty(entityList)) {
+            return new int[0];
+        }
+        return batchInsertUsing(inferEntityClass(entityList), entityList, pageSize, dynamicTbNameStrategy);
     }
 
     /**
@@ -918,6 +965,7 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
 
         /**
          * 处理插入方法的参数，执行元对象填充
+         * 只处理实体对象 T 和 List<T>，跳过 Class、String、int、Map、DynamicNameStrategy 等
          *
          * @param args 方法参数
          */
@@ -925,15 +973,14 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
             if (args == null || args.length == 0) {
                 return;
             }
-
-            // 使用函数式编程风格处理参数
-            java.util.Arrays.stream(args)
-                    .filter(arg -> arg != null && !(arg instanceof DynamicNameStrategy))
+            Arrays.stream(args)
+                    .filter(Objects::nonNull)
                     .forEach(this::processObject);
         }
 
         /**
          * 处理单个对象或列表对象
+         * 只处理有 @TdTable 注解的实体对象
          *
          * @param obj 待处理的对象
          */
@@ -941,11 +988,12 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
             if (obj == null) {
                 return;
             }
-
-            // 使用函数式编程风格处理对象
             if (obj instanceof List) {
                 ((List<?>) obj).forEach(this::processObject);
-            } else {
+                return;
+            }
+            // 只处理有 @TdTable 注解的实体对象
+            if (TdSqlUtil.isTdEntity(obj.getClass())) {
                 metaObjectHandler.insertFill(obj);
             }
         }
