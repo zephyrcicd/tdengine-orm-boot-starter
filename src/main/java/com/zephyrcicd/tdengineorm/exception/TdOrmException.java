@@ -13,6 +13,16 @@ public class TdOrmException extends RuntimeException {
         this.code = code;
     }
 
+    public TdOrmException(String message) {
+        super(message);
+        this.code = null;
+    }
+
+    public TdOrmException(String message, Throwable cause) {
+        super(message, cause);
+        this.code = null;
+    }
+
     public TdOrmException(ExceptionCode exceptionCode) {
         super(exceptionCode.getMsg());
         this.code = exceptionCode.getCode();

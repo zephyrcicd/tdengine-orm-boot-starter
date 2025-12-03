@@ -3,6 +3,7 @@ package com.zephyrcicd.tdengineorm.util;
 import com.zephyrcicd.tdengineorm.annotation.TdColumn;
 import com.zephyrcicd.tdengineorm.annotation.TdTable;
 import com.zephyrcicd.tdengineorm.annotation.TdTag;
+import com.zephyrcicd.tdengineorm.typehandler.TypeHandlerHelper;
 import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.constant.TdColumnConstant;
 import com.zephyrcicd.tdengineorm.constant.TdSqlConstant;
@@ -627,7 +628,9 @@ public class TdSqlUtil {
 
     private static Object getFieldValue(Object target, Field field) {
         ReflectionUtils.makeAccessible(field);
-        return ReflectionUtils.getField(field, target);
+        Object rawValue = ReflectionUtils.getField(field, target);
+        // 应用TypeHandler进行序列化
+        return TypeHandlerHelper.toSqlValue(field, rawValue);
     }
 
     public static String buildAggregationFunc(TdSelectFuncEnum tdSelectFuncEnum, String columnName, String aliasName) {
