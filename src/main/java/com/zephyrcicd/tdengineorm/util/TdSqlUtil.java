@@ -515,28 +515,19 @@ public class TdSqlUtil {
         return fieldNameStr + (isTag ? TdSqlConstant.TAGS : SqlConstant.VALUES) + fieldValueParamsStr;
     }
 
-    public static String getFieldTypeAndLength(Field field) {
-        return getFieldTypeAndLength(field, false);
-    }
 
-    public static String getTagFieldTypeAndLength(Field field) {
-        return getFieldTypeAndLength(field, true);
-    }
-
-    private static String getFieldTypeAndLength(Field field, boolean isTag) {
+    private static String getFieldTypeAndLength(Field field) {
         TdColumn tdField = field.getAnnotation(TdColumn.class);
-        TdFieldTypeEnum type = null == tdField ? getColumnTypeByField(field, isTag) : tdField.type();
+        TdFieldTypeEnum type = null == tdField ? getColumnTypeByField(field) : tdField.type();
         if (type.isNeedLengthLimit()) {
             int defaultLength;
             switch (type) {
-                case NCHAR:
-                    defaultLength = 255;
-                    break;
                 case BINARY:
                 case VARBINARY:
                 case VARCHAR:
                     defaultLength = 1024;
                     break;
+                case NCHAR:
                 default:
                     defaultLength = 255;
             }
@@ -547,11 +538,9 @@ public class TdSqlUtil {
         return type.getFiledType();
     }
 
-    private static TdFieldTypeEnum getColumnTypeByField(Field field, boolean isTag) {
+    private static TdFieldTypeEnum getColumnTypeByField(Field field) {
         Class<?> fieldType = field.getType();
-        TdFieldTypeEnum tdFieldTypeEnum = isTag 
-                ? TdFieldTypeEnum.matchByFieldTypeForTag(fieldType) 
-                : TdFieldTypeEnum.matchByFieldType(fieldType);
+        TdFieldTypeEnum tdFieldTypeEnum = TdFieldTypeEnum.matchByFieldType(fieldType);
         if (null == tdFieldTypeEnum) {
             log.warn("Field [{}] with type [{}] cannot match TDengine field type, using NCHAR as default",
                     field.getName(), fieldType.getName());
@@ -570,7 +559,9 @@ public class TdSqlUtil {
     }
 
     private static String buildCreateColumn(List<Field> fields, Field primaryTsField, boolean isTag) {
-        fields.remove(primaryTsField);
+        if (primaryTsField != null) {
+            fields.remove(primaryTsField);
+        }
 
         // 首位必须是 ts TIMESTAMP（仅普通列）
         String tsColumn = primaryTsField == null ? ""
@@ -590,7 +581,7 @@ public class TdSqlUtil {
                     .append(TdSqlUtil.getColumnName(field))
                     .append(SqlConstant.HALF_ANGLE_DASH)
                     .append(SqlConstant.BLANK)
-                    .append(isTag ? TdSqlUtil.getTagFieldTypeAndLength(field) : TdSqlUtil.getFieldTypeAndLength(field));
+                    .append(TdSqlUtil.getFieldTypeAndLength(field));
 
             // 组合主键，仅支持 TDengine 3.3.x 以上版本（tag不支持组合主键）
             if (!isTag) {
@@ -612,7 +603,6 @@ public class TdSqlUtil {
 
         return finalSb.append(SqlConstant.RIGHT_BRACKET).toString();
     }
-
 
 
     /**

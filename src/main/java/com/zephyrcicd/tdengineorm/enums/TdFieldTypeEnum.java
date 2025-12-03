@@ -2,10 +2,8 @@ package com.zephyrcicd.tdengineorm.enums;
 
 import lombok.Getter;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
-import java.util.Arrays;
 
 /**
  * TDengine字段类型枚举
@@ -108,69 +106,60 @@ public enum TdFieldTypeEnum {
     }
 
     /**
-     * 根据Java字段类型自动匹配TDengine字段类型（用于普通列）
-     * 排除：仅WebSocket支持的类型、仅tag支持的类型
+     * 根据Java字段类型自动匹配TDengine字段类型
+     *
+     * <p>匹配优先级策略：
+     * <ul>
+     *   <li>1. 排除仅WebSocket支持的类型（UNSIGNED类型、DECIMAL）</li>
+     *   <li>2. 对于byte[]优先匹配VARBINARY（官方推荐替代BINARY）</li>
+     *   <li>3. 对于String优先匹配NCHAR（通用字符串类型）</li>
+     *   <li>4. tag和普通列使用相同的匹配逻辑，特殊类型（JSON/BLOB）需显式通过注解指定</li>
+     * </ul>
+     *
+     * @param fieldType Java字段类型
+     * @return 匹配的TDengine字段类型，未匹配则返回null
      */
     public static TdFieldTypeEnum matchByFieldType(Class<?> fieldType) {
-        return Arrays.stream(TdFieldTypeEnum.values())
-                .filter(type -> !type.webSocketOnly && !type.tagOnly)
-                .filter(type -> type.matches(fieldType))
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * 根据Java字段类型自动匹配TDengine字段类型（用于tag）
-     * 排除：仅WebSocket支持的类型、仅列支持的类型
-     */
-    public static TdFieldTypeEnum matchByFieldTypeForTag(Class<?> fieldType) {
-        return Arrays.stream(TdFieldTypeEnum.values())
-                .filter(type -> !type.webSocketOnly && !type.columnOnly)
-                .filter(type -> type.matches(fieldType))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private boolean matches(Class<?> fieldType) {
-        switch (this) {
-            case TIMESTAMP:
-                return Timestamp.class.isAssignableFrom(fieldType);
-            case BOOL:
-                return Boolean.class.isAssignableFrom(fieldType) || boolean.class.isAssignableFrom(fieldType);
-            case TINYINT:
-                return Byte.class.isAssignableFrom(fieldType) || byte.class.isAssignableFrom(fieldType);
-            case SMALLINT:
-                return Short.class.isAssignableFrom(fieldType) || short.class.isAssignableFrom(fieldType);
-            case INT:
-                return Integer.class.isAssignableFrom(fieldType) || int.class.isAssignableFrom(fieldType);
-            case BIGINT:
-                return Long.class.isAssignableFrom(fieldType) || long.class.isAssignableFrom(fieldType);
-            case FLOAT:
-                return Float.class.isAssignableFrom(fieldType) || float.class.isAssignableFrom(fieldType);
-            case DOUBLE:
-                return Double.class.isAssignableFrom(fieldType) || double.class.isAssignableFrom(fieldType);
-            case VARCHAR:
-            case BINARY:
-            case VARBINARY:
-            case GEOMETRY:
-            case BLOB:
-                return byte[].class.isAssignableFrom(fieldType);
-            case NCHAR:
-            case JSON:
-                return String.class.isAssignableFrom(fieldType);
-            // WebSocket专用类型的匹配（仅通过注解显式指定时使用）
-            case TINYINT_UNSIGNED:
-                return Short.class.isAssignableFrom(fieldType) || short.class.isAssignableFrom(fieldType);
-            case SMALLINT_UNSIGNED:
-                return Integer.class.isAssignableFrom(fieldType) || int.class.isAssignableFrom(fieldType);
-            case INT_UNSIGNED:
-                return Long.class.isAssignableFrom(fieldType) || long.class.isAssignableFrom(fieldType);
-            case BIGINT_UNSIGNED:
-                return BigInteger.class.isAssignableFrom(fieldType);
-            case DECIMAL:
-                return BigDecimal.class.isAssignableFrom(fieldType);
-            default:
-                return false;
+        if (fieldType == null) {
+            return null;
         }
+
+        // 精确匹配 - 避免流式操作，提升性能
+        if (Timestamp.class.isAssignableFrom(fieldType)) {
+            return TIMESTAMP;
+        }
+        if (Boolean.class.isAssignableFrom(fieldType) || boolean.class == fieldType) {
+            return BOOL;
+        }
+        if (Byte.class.isAssignableFrom(fieldType) || byte.class == fieldType) {
+            return TINYINT;
+        }
+        if (Short.class.isAssignableFrom(fieldType) || short.class == fieldType) {
+            return SMALLINT;  // 优先基础类型，排除TINYINT_UNSIGNED（仅WebSocket）
+        }
+        if (Integer.class.isAssignableFrom(fieldType) || int.class == fieldType) {
+            return INT;  // 优先基础类型，排除SMALLINT_UNSIGNED（仅WebSocket）
+        }
+        if (Long.class.isAssignableFrom(fieldType) || long.class == fieldType) {
+            return BIGINT;  // 优先基础类型，排除INT_UNSIGNED（仅WebSocket）
+        }
+        if (BigInteger.class.isAssignableFrom(fieldType)) {
+            return BIGINT_UNSIGNED;  // 注意：BIGINT_UNSIGNED是WebSocket专用，但这里是唯一选择
+        }
+        if (Float.class.isAssignableFrom(fieldType) || float.class == fieldType) {
+            return FLOAT;
+        }
+        if (Double.class.isAssignableFrom(fieldType) || double.class == fieldType) {
+            return DOUBLE;
+        }
+        if (String.class.isAssignableFrom(fieldType)) {
+            return NCHAR;  // 优先通用字符串类型，JSON需要显式指定
+        }
+        if (byte[].class.isAssignableFrom(fieldType)) {
+            return VARBINARY;  // 优先官方推荐类型，替代BINARY，排除BLOB（仅列支持）
+        }
+        // DECIMAL仅WebSocket支持，BigDecimal无匹配
+
+        return null;
     }
 }
