@@ -618,21 +618,23 @@ public class Application {
 
 ### Build Instructions
 
-This project uses Gradle for build and publication. Common commands:
+This project uses Maven for build and publication. Common commands:
 
 ```bash
-# Clean and build (with tests)
-./gradlew clean build
+# Compile only
+mvn clean compile
 
-# Assemble artifacts only (skip running tests)
-./gradlew clean assemble
+# Package (skip tests - tests require TDengine database)
+mvn clean package -DskipTests
 
-# Publish to local Maven repository
-./gradlew publishToMavenLocal
+# Install to local Maven repository (use skip-gpg profile to skip GPG signing for local development)
+mvn clean install -DskipTests -Pskip-gpg
 
 # Inspect dependency tree
-./gradlew dependencies
+mvn dependency:tree
 ```
+
+> 💡 **Note**: For local development, you must use `-Pskip-gpg` to skip GPG signing, otherwise the build will fail due to missing GPG keys.
 
 ## Contribution & Support
 

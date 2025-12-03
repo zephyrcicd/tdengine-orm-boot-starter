@@ -664,21 +664,23 @@ public class Application {
 
 ### 构建说明
 
-本项目已使用 Gradle 进行构建与发布，常用命令如下：
+本项目使用 Maven 进行构建与发布，常用命令如下：
 
 ```bash
-# 清理与构建（包含测试）
-./gradlew clean build
+# 仅编译
+mvn clean compile
 
-# 仅打包产物（assemble，不运行测试）
-./gradlew clean assemble
+# 打包（跳过测试，测试需要 TDengine 数据库）
+mvn clean package -DskipTests
 
-# 发布到本地 Maven 仓库
-./gradlew publishToMavenLocal
+# 安装到本地 Maven 仓库（本地开发需使用 skip-gpg profile 跳过 GPG 签名）
+mvn clean install -DskipTests -Pskip-gpg
 
 # 查看依赖树
-./gradlew dependencies
+mvn dependency:tree
 ```
+
+> 💡 **注意**：本地开发安装时必须使用 `-Pskip-gpg` 参数跳过 GPG 签名，否则会因缺少 GPG 密钥而失败。
 
 ## 贡献与支持
 
