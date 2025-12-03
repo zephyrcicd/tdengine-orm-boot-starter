@@ -475,6 +475,154 @@ public class AuditSqlInterceptor implements TdSqlInterceptor {
 - `beforeExecute`：按 `getOrder()` 从小到大顺序执行
 - `afterExecute`：按 `getOrder()` 从大到小逆序执行（类似栈的 LIFO）
 
+### 类型处理器 (TypeHandler)
+
+框架提供了灵活的类型处理器机制，用于 Java 类型与数据库类型之间的序列化和反序列化转换，类似于 MyBatis 的 TypeHandler。
+
+#### 内置类型处理器
+
+框架默认注册了常用类型的处理器：
+
+| 处理器 | Java 类型 | 说明 |
+|--------|-----------|------|
+| `StringTypeHandler` | String | 字符串类型 |
+| `IntegerTypeHandler` | Integer | 整数类型 |
+| `LongTypeHandler` | Long | 长整型 |
+| `DoubleTypeHandler` | Double | 双精度浮点 |
+| `FloatTypeHandler` | Float | 单精度浮点 |
+| `BooleanTypeHandler` | Boolean | 布尔类型 |
+| `TimestampTypeHandler` | Timestamp | 时间戳类型 |
+| `ByteArrayTypeHandler` | byte[] | 字节数组 |
+| `JsonMapTypeHandler` | Map&lt;String, Object&gt; | JSON与Map互转 |
+| `ObjectTypeHandler` | Object | 智能处理：基础类型直接存储，复杂对象序列化为JSON |
+
+#### 高级类型处理器
+
+```java
+// JSON 类型处理器 - 将对象序列化为 JSON 存储
+JsonTypeHandler<MyPojo> handler = new JsonTypeHandler<>(MyPojo.class);
+
+// 枚举类型处理器 - 按 name 存储
+EnumTypeHandler<Status> handler = new EnumTypeHandler<>(Status.class);
+
+// 枚举类型处理器 - 按 ordinal 存储
+EnumOrdinalTypeHandler<Status> handler = new EnumOrdinalTypeHandler<>(Status.class);
+
+// List 类型处理器 - 序列化为 JSON 数组
+ListTypeHandler<String> handler = new ListTypeHandler<>(String.class);
+```
+
+#### 使用注解指定处理器
+
+```java
+@TdTable("sensor_data")
+public class SensorData {
+    @TdTypeHandler(JsonTypeHandler.class)
+    private SensorConfig config;  // 自动序列化为 JSON
+
+    @TdTypeHandler(EnumTypeHandler.class)
+    private DeviceStatus status;  // 按枚举名称存储
+}
+```
+
+#### 多态反序列化
+
+当需要根据 `type` 字段动态决定 `dataJson` 的反序列化类型时：
+
+```java
+// 方式1：注解配置
+public class Event {
+    private String type;
+    
+    @TdPolymorphic(
+        typeField = "type",
+        mappings = {
+            @TypeMapping(type = "SENSOR", target = SensorData.class),
+            @TypeMapping(type = "ALARM", target = AlarmData.class)
+        },
+        defaultType = BaseData.class
+    )
+    private Object data;
+}
+
+// 方式2：Builder 方式
+PolymorphicFieldHandler handler = PolymorphicFieldHandler.builder()
+    .typeColumn("type")
+    .dataColumn("data_json")
+    .register("SENSOR", SensorData.class)
+    .register("ALARM", AlarmData.class)
+    .defaultType(BaseData.class)
+    .build();
+```
+
+#### 复用 MyBatis TypeHandler
+
+如果项目中已有 MyBatis TypeHandler，可以直接复用，无需重复开发：
+
+```java
+// 批量注册已有的 MyBatis TypeHandler
+TypeHandlerRegistry.getInstance().fromMybatis(
+    new MyJsonTypeHandler(),
+    new MyEnumTypeHandler(Status.class),
+    new MyCustomTypeHandler()
+);
+
+// 指定 Java 类型注册
+TypeHandlerRegistry.getInstance().fromMybatis(MyPojo.class, new MyPojoTypeHandler());
+
+// 从 Spring 容器批量注册
+@Autowired
+private List<org.apache.ibatis.type.TypeHandler<?>> mybatisHandlers;
+
+@PostConstruct
+public void init() {
+    TypeHandlerRegistry.getInstance().fromMybatis(mybatisHandlers);
+}
+```
+
+> 💡 **注意**：复用 MyBatis TypeHandler 需要添加 MyBatis 依赖（已设为 optional）
+
+#### 自定义类型处理器
+
+继承 `BaseTypeHandler<T>` 实现自定义类型转换：
+
+```java
+public class LocalDateTypeHandler extends BaseTypeHandler<LocalDate> {
+
+    public LocalDateTypeHandler() {
+        super(LocalDate.class);
+    }
+
+    @Override
+    protected void setNonNullParameter(PreparedStatement ps, int index, LocalDate parameter) throws SQLException {
+        ps.setDate(index, Date.valueOf(parameter));
+    }
+
+    @Override
+    protected LocalDate getNullableResult(ResultSet rs, String columnName) throws SQLException {
+        Date date = rs.getDate(columnName);
+        return date != null ? date.toLocalDate() : null;
+    }
+
+    @Override
+    protected LocalDate getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+        Date date = rs.getDate(columnIndex);
+        return date != null ? date.toLocalDate() : null;
+    }
+
+    @Override
+    protected LocalDate convertFromSqlValue(Object sqlValue) {
+        if (sqlValue instanceof Date) {
+            return ((Date) sqlValue).toLocalDate();
+        }
+        return null;
+    }
+}
+
+// 注册自定义处理器
+TypeHandlerRegistry.getInstance().register(new LocalDateTypeHandler());
+```
+
 ### 自动配置详情
 
 #### Bean 创建

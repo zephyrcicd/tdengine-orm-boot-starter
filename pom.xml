@@ -51,6 +51,7 @@
         <jetbrains-annotations.version>24.0.1</jetbrains-annotations.version>
         <junit-jupiter.version>5.7.0</junit-jupiter.version>
         <junit-platform.version>1.7.0</junit-platform.version>
+        <mybatis.version>3.5.13</mybatis.version>
     </properties>
 
     <dependencies>
@@ -100,6 +101,14 @@
             <artifactId>annotations</artifactId>
             <version>${jetbrains-annotations.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- MyBatis (optional, for TypeHandler bridge) -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>${mybatis.version}</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- Test dependencies -->

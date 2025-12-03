@@ -1,5 +1,6 @@
 package com.zephyrcicd.tdengineorm.mapper;
 
+import com.zephyrcicd.tdengineorm.typehandler.TypeHandlerHelper;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -29,6 +30,7 @@ public class TdColumnRowMapper<T> implements RowMapper<T> {
     private final Class<T> mappedClass;
     private final Map<String, PropertyDescriptor> mappedFields;
     private final Map<String, String> columnToPropertyMap;
+    private final Map<String, Field> propertyToFieldMap;
     
     // 缓存已创建的RowMapper实例，避免重复初始化
     private static final Map<Class<?>, TdColumnRowMapper<?>> MAPPER_CACHE = new ConcurrentHashMap<>();
@@ -42,6 +44,7 @@ public class TdColumnRowMapper<T> implements RowMapper<T> {
         this.mappedClass = (Class<T>) mappedClass;
         this.mappedFields = new HashMap<>();
         this.columnToPropertyMap = new HashMap<>();
+        this.propertyToFieldMap = new HashMap<>();
         initialize();
     }
 
@@ -59,6 +62,7 @@ public class TdColumnRowMapper<T> implements RowMapper<T> {
                     Field field = mappedClass.getDeclaredField(propertyName);
                     String columnName = TdSqlUtil.getColumnName(field);
                     columnToPropertyMap.put(columnName, propertyName);
+                    propertyToFieldMap.put(propertyName, field);
                 } catch (NoSuchFieldException e) {
                     // 如果找不到字段，使用默认映射
                     String columnName = camelCaseToUnderscore(propertyName).toLowerCase();
@@ -106,6 +110,11 @@ public class TdColumnRowMapper<T> implements RowMapper<T> {
                 if (pd != null) {
                     try {
                         Object value = JdbcUtils.getResultSetValue(rs, index, pd.getPropertyType());
+                        // 应用TypeHandler进行反序列化
+                        Field field = propertyToFieldMap.get(propertyName);
+                        if (field != null) {
+                            value = TypeHandlerHelper.fromSqlValue(field, value);
+                        }
                         bw.setPropertyValue(propertyName, value);
                     } catch (Exception ignored) {
 
