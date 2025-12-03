@@ -144,7 +144,7 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         if (CollectionUtils.isEmpty(tagFieldList)) {
             throw new TdOrmException(TdOrmExceptionCode.NO_TAG_FIELD);
         }
-        String tagColumnSql = TdSqlUtil.buildCreateColumn(tagFieldList, null);
+        String tagColumnSql = TdSqlUtil.buildCreateTagColumn(tagFieldList);
         finalSql += SqlConstant.BLANK + TdSqlConstant.TAGS + tagColumnSql;
         return updateWithInterceptor(finalSql, new HashMap<>(0));
     }
