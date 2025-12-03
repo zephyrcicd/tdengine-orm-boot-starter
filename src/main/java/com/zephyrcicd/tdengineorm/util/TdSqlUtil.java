@@ -118,6 +118,10 @@ public class TdSqlUtil {
         return annotation == null ? "" : annotation.value();
     }
 
+    public static boolean isTdEntity(Class<?> clazz) {
+        return clazz.isAnnotationPresent(TdTable.class);
+    }
+
     public static Collector<CharSequence, ?, String> getParenthesisCollector() {
         return Collectors.joining(SqlConstant.COMMA, SqlConstant.LEFT_BRACKET, SqlConstant.RIGHT_BRACKET);
     }
