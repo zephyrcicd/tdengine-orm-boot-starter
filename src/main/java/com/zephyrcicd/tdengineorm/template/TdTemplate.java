@@ -477,9 +477,11 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      */
     public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
         if (pageSize <= 0) {
-            throw new IllegalArgumentException("Partition size must be greater than zero");
+            throw new TdOrmException(TdOrmExceptionCode.PARTITION_SIZE_IS_ZERO);
         }
-
+        if (CollectionUtils.isEmpty(entityList)) {
+            throw new TdOrmException(TdOrmExceptionCode.ENTITY_LIST_IS_EMPTY);
+        }
         // 不使用USING语法时, 不能指定TAG字段的值
         List<Field> fieldList = TdSqlUtil.getExistNonTagFields(clazz);
 
@@ -783,103 +785,6 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         Map<String, Object> paramsMap = new HashMap<>(1);
         paramsMap.put("tsList", tsList);
         return updateWithInterceptor(sql, paramsMap);
-    }
-
-    /**
-     * 查找List中key最多的Map
-     *
-     * @param dataList Map数据列表
-     * @return key数量最多的Map
-     */
-    private Map<String, Object> findMapWithMaxKeys(List<Map<String, Object>> dataList) {
-        return dataList.stream()
-                .max(Comparator.comparingInt(Map::size))
-                .orElseThrow(() -> new TdOrmException(TdOrmExceptionCode.NO_FILED));
-    }
-
-    /**
-     * 构建INSERT SQL前缀部分（INSERT INTO table (col1, col2) VALUES）
-     *
-     * @param tableName   表名
-     * @param columnNames 列名集合
-     * @return SQL前缀字符串
-     */
-    private String buildInsertSqlPrefix(String tableName, Set<String> columnNames) {
-        StringBuilder sql = new StringBuilder(SqlConstant.INSERT_INTO)
-                .append(addSingleQuotes(tableName))
-                .append(SqlConstant.LEFT_BRACKET);
-
-        for (String columnName : columnNames) {
-            sql.append(columnName).append(SqlConstant.COMMA);
-        }
-        sql.deleteCharAt(sql.length() - 1); // 删除最后的逗号
-        sql.append(") VALUES ");
-
-        return sql.toString();
-    }
-
-    /**
-     * 构建VALUES部分SQL（支持NULL填充和全局索引）
-     *
-     * @param batch       当前批次的Map数据列表
-     * @param columnNames 列名集合（来自key最多的Map）
-     * @param paramsMap   参数Map（输出参数）
-     * @param startIndex  起始索引（用于参数命名，避免冲突）
-     * @return VALUES部分SQL字符串
-     */
-    private String buildValuesSql(List<Map<String, Object>> batch, Set<String> columnNames,
-                                  Map<String, Object> paramsMap, int startIndex) {
-        StringBuilder sql = new StringBuilder();
-
-        for (int i = 0; i < batch.size(); i++) {
-            sql.append("(");
-            Map<String, Object> dataMap = batch.get(i);
-
-            for (String columnName : columnNames) {
-                String paramName = columnName + "-" + (startIndex + i); // 全局索引避免冲突
-                sql.append(SqlConstant.COLON).append(paramName).append(SqlConstant.COMMA);
-                // 使用getOrDefault，缺失的key使用null（性能优先，用户保证数据正确性）
-                paramsMap.put(paramName, dataMap.getOrDefault(columnName, null));
-            }
-
-            sql.deleteCharAt(sql.length() - 1); // 删除最后的逗号
-            sql.append("), ");
-        }
-
-        sql.delete(sql.length() - 2, sql.length()); // 删除最后的", "
-        return sql.toString();
-    }
-
-    /**
-     * 批量插入Map数据的核心实现方法
-     *
-     * @param tableName 表名
-     * @param dataList  数据列表
-     * @param pageSize  批次大小
-     * @return 每批插入影响的行数数组
-     */
-    private int[] doBatchInsertMaps(String tableName, List<Map<String, Object>> dataList, int pageSize) {
-        // 查找key最多的Map并构建SQL前缀（性能优化：只构建一次）
-        Map<String, Object> maxKeysMap = findMapWithMaxKeys(dataList);
-        Set<String> columnNames = maxKeysMap.keySet();
-        String sqlPrefix = buildInsertSqlPrefix(tableName, columnNames);
-
-        // 分批进行插入
-        List<List<Map<String, Object>>> partition = ListUtils.partition(dataList, pageSize);
-        List<Integer> resultList = new ArrayList<>();
-        int processedCount = 0; // 全局计数器，确保参数名唯一
-
-        for (List<Map<String, Object>> batch : partition) {
-            Map<String, Object> paramsMap = new HashMap<>(batch.size() * columnNames.size());
-            String valuesSql = buildValuesSql(batch, columnNames, paramsMap, processedCount);
-            String sql = sqlPrefix + valuesSql;
-
-            int singleResult = updateWithInterceptor(sql, paramsMap);
-            resultList.add(singleResult);
-            processedCount += batch.size(); // 更新已处理数量
-        }
-
-        return resultList.stream().mapToInt(Integer::intValue).toArray();
     }
 
     private static <T> void joinInsetSqlSuffix(List<T> list, StringBuilder finalSql, Map<String, Object> paramsMap) {

@@ -1,5 +1,6 @@
 package com.zephyrcicd.tdengineorm.template;
 
+import com.zephyrcicd.tdengineorm.constant.SqlConstant;
 import com.zephyrcicd.tdengineorm.exception.TdOrmException;
 import com.zephyrcicd.tdengineorm.exception.TdOrmExceptionCode;
 import com.zephyrcicd.tdengineorm.interceptor.TdSqlContext;
@@ -9,12 +10,19 @@ import com.zephyrcicd.tdengineorm.mapper.TdColumnRowMapper;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
 
 /**
  * TDengine JDBC 操作抽象基类
@@ -311,5 +319,125 @@ public abstract class AbstractTdJdbcTemplate {
                 log.warn("SQL interceptor afterExecute error: {}", e.getMessage());
             }
         }
+    }
+
+    // ========== 通用 SQL 构建工具方法 ==========
+
+    /**
+     * 从 Map 列表中找出 key 最多的 Map
+     * <p>
+     * 适用于批量插入时确定列名模板，避免列名缺失。
+     * </p>
+     *
+     * @param dataList Map 数据列表
+     * @return key 数量最多的 Map
+     * @throws TdOrmException 如果列表为空或所有 Map 都为空
+     */
+    protected Map<String, Object> findMapWithMaxKeys(List<Map<String, Object>> dataList) {
+        return dataList.stream()
+                .max(Comparator.comparingInt(Map::size))
+                .orElseThrow(() -> new TdOrmException(TdOrmExceptionCode.NO_FILED));
+    }
+
+    /**
+     * 构建 INSERT SQL 前缀部分
+     * <p>
+     * 格式：INSERT INTO table (col1, col2, col3) VALUES
+     * </p>
+     *
+     * @param tableName   表名
+     * @param columnNames 列名集合（顺序敏感）
+     * @return SQL 前缀字符串
+     */
+    protected String buildInsertSqlPrefix(String tableName, Set<String> columnNames) {
+        StringBuilder sql = new StringBuilder(SqlConstant.INSERT_INTO)
+                .append(addSingleQuotes(tableName))
+                .append(SqlConstant.LEFT_BRACKET);
+
+        for (String columnName : columnNames) {
+            sql.append(columnName).append(SqlConstant.COMMA);
+        }
+        sql.deleteCharAt(sql.length() - 1); // 删除最后的逗号
+        sql.append(") VALUES ");
+
+        return sql.toString();
+    }
+
+    /**
+     * 构建 VALUES 部分 SQL（支持 NULL 填充和全局索引）
+     * <p>
+     * 生成格式：(:col1-0, :col2-0, :col3-0), (:col1-1, :col2-1, :col3-1)
+     * </p>
+     * <p>
+     * <b>关键特性：</b>
+     * <ul>
+     *     <li>全局索引：使用 startIndex 避免参数名冲突</li>
+     *     <li>NULL 填充：缺失的 key 自动填充 null</li>
+     *     <li>参数命名：格式为 columnName-index</li>
+     * </ul>
+     * </p>
+     *
+     * @param batch       当前批次的 Map 数据列表
+     * @param columnNames 列名集合（来自 key 最多的 Map）
+     * @param paramsMap   参数 Map（输出参数，会被填充）
+     * @param startIndex  起始索引（用于参数命名，避免冲突）
+     * @return VALUES 部分 SQL 字符串
+     */
+    protected String buildValuesSql(List<Map<String, Object>> batch, Set<String> columnNames,
+                                    Map<String, Object> paramsMap, int startIndex) {
+        StringBuilder sql = new StringBuilder();
+
+        for (int i = 0; i < batch.size(); i++) {
+            sql.append("(");
+            Map<String, Object> dataMap = batch.get(i);
+
+            for (String columnName : columnNames) {
+                String paramName = columnName + "-" + (startIndex + i); // 全局索引避免冲突
+                sql.append(SqlConstant.COLON).append(paramName).append(SqlConstant.COMMA);
+                // 使用 getOrDefault，缺失的 key 使用 null
+                paramsMap.put(paramName, dataMap.getOrDefault(columnName, null));
+            }
+
+            sql.deleteCharAt(sql.length() - 1); // 删除最后的逗号
+            sql.append("), ");
+        }
+
+        sql.delete(sql.length() - 2, sql.length()); // 删除最后的 ", "
+        return sql.toString();
+    }
+
+    /**
+     * 批量插入 Map 数据的核心实现方法
+     * <p>
+     * 包含分批处理、NULL 填充、参数索引管理等完整逻辑。
+     * </p>
+     *
+     * @param tableName 表名
+     * @param dataList  数据列表
+     * @param pageSize  批次大小
+     * @return 每批插入影响的行数数组
+     */
+    protected int[] doBatchInsertMaps(String tableName, List<Map<String, Object>> dataList, int pageSize) {
+        // 查找 key 最多的 Map 并构建 SQL 前缀（性能优化：只构建一次）
+        Map<String, Object> maxKeysMap = findMapWithMaxKeys(dataList);
+        Set<String> columnNames = maxKeysMap.keySet();
+        String sqlPrefix = buildInsertSqlPrefix(tableName, columnNames);
+
+        // 分批进行插入
+        List<List<Map<String, Object>>> partition = ListUtils.partition(dataList, pageSize);
+        List<Integer> resultList = new ArrayList<>();
+        int processedCount = 0; // 全局计数器，确保参数名唯一
+
+        for (List<Map<String, Object>> batch : partition) {
+            Map<String, Object> paramsMap = new HashMap<>(batch.size() * columnNames.size());
+            String valuesSql = buildValuesSql(batch, columnNames, paramsMap, processedCount);
+            String sql = sqlPrefix + valuesSql;
+
+            int singleResult = updateWithInterceptor(sql, paramsMap);
+            resultList.add(singleResult);
+            processedCount += batch.size(); // 更新已处理数量
+        }
+
+        return resultList.stream().mapToInt(Integer::intValue).toArray();
     }
 }
