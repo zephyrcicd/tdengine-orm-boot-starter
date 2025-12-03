@@ -430,6 +430,154 @@ public class AuditSqlInterceptor implements TdSqlInterceptor {
 - `beforeExecute`: Executed in ascending order by `getOrder()`
 - `afterExecute`: Executed in descending order by `getOrder()` (LIFO like a stack)
 
+### TypeHandler
+
+The framework provides a flexible type handler mechanism for serialization and deserialization conversion between Java types and database types, similar to MyBatis TypeHandler.
+
+#### Built-in Type Handlers
+
+The framework registers common type handlers by default:
+
+| Handler | Java Type | Description |
+|---------|-----------|-------------|
+| `StringTypeHandler` | String | String type |
+| `IntegerTypeHandler` | Integer | Integer type |
+| `LongTypeHandler` | Long | Long integer type |
+| `DoubleTypeHandler` | Double | Double precision floating point |
+| `FloatTypeHandler` | Float | Single precision floating point |
+| `BooleanTypeHandler` | Boolean | Boolean type |
+| `TimestampTypeHandler` | Timestamp | Timestamp type |
+| `ByteArrayTypeHandler` | byte[] | Byte array |
+| `JsonMapTypeHandler` | Map&lt;String, Object&gt; | JSON to Map conversion |
+| `ObjectTypeHandler` | Object | Smart handling: basic types stored directly, complex objects serialized to JSON |
+
+#### Advanced Type Handlers
+
+```java
+// JSON Type Handler - serialize objects to JSON for storage
+JsonTypeHandler<MyPojo> handler = new JsonTypeHandler<>(MyPojo.class);
+
+// Enum Type Handler - store by name
+EnumTypeHandler<Status> handler = new EnumTypeHandler<>(Status.class);
+
+// Enum Type Handler - store by ordinal
+EnumOrdinalTypeHandler<Status> handler = new EnumOrdinalTypeHandler<>(Status.class);
+
+// List Type Handler - serialize to JSON array
+ListTypeHandler<String> handler = new ListTypeHandler<>(String.class);
+```
+
+#### Using Annotations to Specify Handlers
+
+```java
+@TdTable("sensor_data")
+public class SensorData {
+    @TdTypeHandler(JsonTypeHandler.class)
+    private SensorConfig config;  // Automatically serialized to JSON
+
+    @TdTypeHandler(EnumTypeHandler.class)
+    private DeviceStatus status;  // Stored by enum name
+}
+```
+
+#### Polymorphic Deserialization
+
+When you need to dynamically determine the deserialization type of `dataJson` based on a `type` field:
+
+```java
+// Method 1: Annotation configuration
+public class Event {
+    private String type;
+
+    @TdPolymorphic(
+        typeField = "type",
+        mappings = {
+            @TypeMapping(type = "SENSOR", target = SensorData.class),
+            @TypeMapping(type = "ALARM", target = AlarmData.class)
+        },
+        defaultType = BaseData.class
+    )
+    private Object data;
+}
+
+// Method 2: Builder approach
+PolymorphicFieldHandler handler = PolymorphicFieldHandler.builder()
+    .typeColumn("type")
+    .dataColumn("data_json")
+    .register("SENSOR", SensorData.class)
+    .register("ALARM", AlarmData.class)
+    .defaultType(BaseData.class)
+    .build();
+```
+
+#### Reusing MyBatis TypeHandlers
+
+If your project already has MyBatis TypeHandlers, you can reuse them directly without rewriting:
+
+```java
+// Batch register existing MyBatis TypeHandlers
+TypeHandlerRegistry.getInstance().fromMybatis(
+    new MyJsonTypeHandler(),
+    new MyEnumTypeHandler(Status.class),
+    new MyCustomTypeHandler()
+);
+
+// Register with specific Java type
+TypeHandlerRegistry.getInstance().fromMybatis(MyPojo.class, new MyPojoTypeHandler());
+
+// Batch register from Spring container
+@Autowired
+private List<org.apache.ibatis.type.TypeHandler<?>> mybatisHandlers;
+
+@PostConstruct
+public void init() {
+    TypeHandlerRegistry.getInstance().fromMybatis(mybatisHandlers);
+}
+```
+
+> 💡 **Note**: Reusing MyBatis TypeHandlers requires adding MyBatis dependency (set as optional)
+
+#### Custom Type Handler
+
+Extend `BaseTypeHandler<T>` to implement custom type conversion:
+
+```java
+public class LocalDateTypeHandler extends BaseTypeHandler<LocalDate> {
+
+    public LocalDateTypeHandler() {
+        super(LocalDate.class);
+    }
+
+    @Override
+    protected void setNonNullParameter(PreparedStatement ps, int index, LocalDate parameter) throws SQLException {
+        ps.setDate(index, Date.valueOf(parameter));
+    }
+
+    @Override
+    protected LocalDate getNullableResult(ResultSet rs, String columnName) throws SQLException {
+        Date date = rs.getDate(columnName);
+        return date != null ? date.toLocalDate() : null;
+    }
+
+    @Override
+    protected LocalDate getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+        Date date = rs.getDate(columnIndex);
+        return date != null ? date.toLocalDate() : null;
+    }
+
+    @Override
+    protected LocalDate convertFromSqlValue(Object sqlValue) {
+        if (sqlValue instanceof Date) {
+            return ((Date) sqlValue).toLocalDate();
+        }
+        return null;
+    }
+}
+
+// Register custom handler
+TypeHandlerRegistry.getInstance().register(new LocalDateTypeHandler());
+```
+
 ### Auto-Configuration Details
 
 #### Bean Creation
