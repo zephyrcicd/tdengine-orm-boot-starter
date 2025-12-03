@@ -424,29 +424,8 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         return updateWithInterceptor(finalSql, paramsMap);
     }
 
-    public <T> int[] batchInsertWithoutClass(List<T> entityList) {
-        if (CollectionUtils.isEmpty(entityList)) {
-            return new int[0];
-        }
-        return batchInsert(inferEntityClass(entityList), entityList);
-    }
-
-    public <T> int[] batchInsertWithoutClass(List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        if (CollectionUtils.isEmpty(entityList)) {
-            return new int[0];
-        }
-        return batchInsert(inferEntityClass(entityList), entityList, dynamicTbNameStrategy);
-    }
-
-    public <T> int[] batchInsertWithoutClass(List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        if (CollectionUtils.isEmpty(entityList)) {
-            return new int[0];
-        }
-        return batchInsert(inferEntityClass(entityList), entityList, pageSize, dynamicTbNameStrategy);
-    }
-
-    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList) {
-        return batchInsert(clazz, entityList, tdOrmConfig.getPageSize(), getDefaultNamingStrategy());
+    public <T> int[] batchInsert(List<T> entityList) {
+        return batchInsert(entityList, tdOrmConfig.getPageSize(), getDefaultNamingStrategy());
     }
 
 
@@ -461,14 +440,13 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      *
      * <p><b>适用场景：</b>大批量数据导入不同子表、多设备数据批量上报、分表场景的批量写入</p>
      *
-     * @param clazz                 实体类 Class
      * @param entityList            实体列表
      * @param dynamicTbNameStrategy 动态表名策略
      * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        return batchInsert(clazz, entityList, tdOrmConfig.getPageSize(), dynamicTbNameStrategy);
+    public <T> int[] batchInsert(List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+        return batchInsert(entityList, tdOrmConfig.getPageSize(), dynamicTbNameStrategy);
     }
 
     /**
@@ -489,21 +467,21 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      *
      * <p><b>适用场景：</b>大批量数据导入不同子表（自定义批次大小）、多设备数据批量上报、分表场景的批量写入</p>
      *
-     * @param clazz                 实体类 Class
      * @param entityList            实体列表
      * @param pageSize              每批次大小
      * @param dynamicTbNameStrategy 动态表名策略
      * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsert(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+    public <T> int[] batchInsert(List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
         if (pageSize <= 0) {
             throw new TdOrmException(TdOrmExceptionCode.PARTITION_SIZE_IS_ZERO);
         }
         if (CollectionUtils.isEmpty(entityList)) {
-            throw new TdOrmException(TdOrmExceptionCode.ENTITY_LIST_IS_EMPTY);
+            return new int[0];
         }
         // 不使用USING语法时, 不能指定TAG字段的值
+        Class<T> clazz = inferEntityClass(entityList);
         List<Field> fieldList = TdSqlUtil.getExistNonTagFields(clazz);
 
         // 按照命名策略对数据进行分组,相同表名的数据放在一起
@@ -604,8 +582,8 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      * @param strategy Map表名称策略
      * @return 每批插入影响的行数数组
      */
-    public int[] batchInsert(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String, Object>> strategy) {
-        return batchInsert(dataList, strategy, tdOrmConfig.getPageSize());
+    public int[] batchInsertMap(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String, Object>> strategy) {
+        return batchInsertMap(dataList, strategy, tdOrmConfig.getPageSize());
     }
 
     /**
@@ -630,7 +608,7 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      * @param pageSize 每批次大小
      * @return 每批插入影响的行数数组
      */
-    public int[] batchInsert(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String, Object>> strategy,
+    public int[] batchInsertMap(List<Map<String, Object>> dataList, DynamicNameStrategy<Map<String, Object>> strategy,
                              int pageSize) {
         if (pageSize <= 0) {
             throw new IllegalArgumentException("Partition size must be greater than zero");
@@ -663,27 +641,6 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         return resultList.stream().mapToInt(Integer::intValue).toArray();
     }
 
-    public <T> int[] batchInsertUsingWithoutClass(List<T> entityList) {
-        if (CollectionUtils.isEmpty(entityList)) {
-            return new int[0];
-        }
-        return batchInsertUsing(inferEntityClass(entityList), entityList);
-    }
-
-    public <T> int[] batchInsertUsingWithoutClass(List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        if (CollectionUtils.isEmpty(entityList)) {
-            return new int[0];
-        }
-        return batchInsertUsing(inferEntityClass(entityList), entityList, dynamicTbNameStrategy);
-    }
-
-    public <T> int[] batchInsertUsingWithoutClass(List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        if (CollectionUtils.isEmpty(entityList)) {
-            return new int[0];
-        }
-        return batchInsertUsing(inferEntityClass(entityList), entityList, pageSize, dynamicTbNameStrategy);
-    }
-
     /**
      * 使用 USING 语法批量插入子表数据（默认表名策略，默认批次大小）
      *
@@ -700,13 +657,12 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      *
      * <p><b>适用场景：</b>TDengine 子表首次批量插入、同设备多条数据批量上报</p>
      *
-     * @param clazz      实体类 Class
      * @param entityList 实体列表（TAG 值必须相同）
      * @param <T>        实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList) {
-        return batchInsertUsing(clazz, entityList, tdOrmConfig.getPageSize(), getDefaultNamingStrategy());
+    public <T> int[] batchInsertUsing(List<T> entityList) {
+        return batchInsertUsing(entityList, tdOrmConfig.getPageSize(), getDefaultNamingStrategy());
     }
 
     /**
@@ -725,14 +681,13 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      *
      * <p><b>适用场景：</b>TDengine 子表首次批量插入（动态表名）、同设备多条数据批量上报</p>
      *
-     * @param clazz                 实体类 Class
      * @param entityList            实体列表（TAG 值必须相同）
      * @param dynamicTbNameStrategy 动态表名策略
      * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
-        return batchInsertUsing(clazz, entityList, tdOrmConfig.getPageSize(), dynamicTbNameStrategy);
+    public <T> int[] batchInsertUsing(List<T> entityList, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+        return batchInsertUsing(entityList, tdOrmConfig.getPageSize(), dynamicTbNameStrategy);
     }
 
     /**
@@ -752,14 +707,13 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
      *
      * <p><b>适用场景：</b>TDengine 子表首次大批量插入（自定义批次）、同设备大量历史数据导入</p>
      *
-     * @param clazz                 实体类 Class
      * @param entityList            实体列表（TAG 值必须相同）
      * @param pageSize              每批次大小
      * @param dynamicTbNameStrategy 动态表名策略
      * @param <T>                   实体类型
      * @return 每批插入影响的行数数组
      */
-    public <T> int[] batchInsertUsing(Class<T> clazz, List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
+    public <T> int[] batchInsertUsing(List<T> entityList, int pageSize, DynamicNameStrategy<T> dynamicTbNameStrategy) {
         if (pageSize <= 0) {
             throw new IllegalArgumentException("Partition size must be greater than zero");
         }
@@ -767,6 +721,8 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         if (CollectionUtils.isEmpty(entityList)) {
             return new int[0];
         }
+
+        Class<T> clazz = inferEntityClass(entityList);
 
         // 获取TAG字段列表
         List<Field> tagFields = TdSqlUtil.getExistTagFields(clazz);
