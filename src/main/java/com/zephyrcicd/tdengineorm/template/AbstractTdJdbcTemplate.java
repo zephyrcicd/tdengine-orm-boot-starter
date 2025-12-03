@@ -14,13 +14,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static com.zephyrcicd.tdengineorm.util.StringUtil.addSingleQuotes;
 
@@ -439,5 +433,10 @@ public abstract class AbstractTdJdbcTemplate {
         }
 
         return resultList.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T> Class<T> inferEntityClass(List<T> entityList) {
+        return (Class<T>) entityList.get(0).getClass();
     }
 }
