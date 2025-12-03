@@ -9,15 +9,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.data.util.Pair;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import java.sql.ResultSet;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -34,37 +33,38 @@ class TagOrderIntegrationTest {
     private static TagOrderCacheManager tagOrderCacheManager;
 
     @BeforeAll
-    @SuppressWarnings("unchecked")
-    static void setUpAll() throws Exception {
+    static void setUpAll() {
         // Mock NamedParameterJdbcTemplate
         NamedParameterJdbcTemplate namedParameterJdbcTemplate = Mockito.mock(NamedParameterJdbcTemplate.class);
-        // 创建 TagOrderCacheManager
-        tagOrderCacheManager = new TagOrderCacheManager(namedParameterJdbcTemplate);
-        when(namedParameterJdbcTemplate.query(
+
+        // Mock queryForList 方法（TagOrderCacheManager 使用的）
+        when(namedParameterJdbcTemplate.queryForList(
                 anyString(),
-                anyMap(),
-                any(RowMapper.class)
+                anyMap()
         )).thenAnswer(invocation -> {
-            RowMapper<String> rowMapper = invocation.getArgument(2);
-            // 模拟返回包含 null 的列表（非 TAG 字段返回 null）
+            // 模拟 DESCRIBE 命令返回的结果
             return Arrays.asList(
-                    null, // ts
-                    null, // value
-                    simulateRowMapper(rowMapper, "energy_type_code", "TAG"),
-                    simulateRowMapper(rowMapper, "product_id", "TAG"),
-                    simulateRowMapper(rowMapper, "device_id", "TAG")
+                    createFieldRow("ts", "TIMESTAMP", ""),
+                    createFieldRow("value", "DOUBLE", ""),
+                    createFieldRow("energy_type_code", "NCHAR(50)", "TAG"),
+                    createFieldRow("product_id", "NCHAR(50)", "TAG"),
+                    createFieldRow("device_id", "NCHAR(50)", "TAG")
             );
         });
+
+        // 创建 TagOrderCacheManager
+        tagOrderCacheManager = new TagOrderCacheManager(namedParameterJdbcTemplate);
     }
 
     /**
-     * 模拟 RowMapper 的行为
+     * 创建模拟的字段行数据
      */
-    private static String simulateRowMapper(RowMapper<String> rowMapper, String field, String note) throws Exception {
-        ResultSet rs = Mockito.mock(ResultSet.class);
-        when(rs.getString("Field")).thenReturn(field);
-        when(rs.getString("Note")).thenReturn(note);
-        return rowMapper.mapRow(rs, 0);
+    private static Map<String, Object> createFieldRow(String field, String type, String note) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("Field", field);
+        row.put("Type", type);
+        row.put("Note", note);
+        return row;
     }
 
     @Test
