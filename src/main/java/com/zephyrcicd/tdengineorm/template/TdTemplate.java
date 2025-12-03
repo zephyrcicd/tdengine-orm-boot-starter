@@ -424,11 +424,6 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         return updateWithInterceptor(finalSql, paramsMap);
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> Class<T> inferEntityClass(List<T> entityList) {
-        return (Class<T>) entityList.get(0).getClass();
-    }
-
     public <T> int[] batchInsertWithoutClass(List<T> entityList) {
         if (CollectionUtils.isEmpty(entityList)) {
             return new int[0];
