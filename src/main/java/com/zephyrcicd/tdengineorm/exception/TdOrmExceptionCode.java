@@ -69,6 +69,9 @@ public enum TdOrmExceptionCode implements ExceptionCode {
      * 不支持使用Map.class作为返回类型
      */
     MAP_TYPE_NOT_SUPPORTED(70014, "Map.class is not supported as result type! Please use listAsMap() or getOneAsMap() methods instead."),
+
+    ENTITY_LIST_IS_EMPTY(70015, "Entity list is empty!"),
+    PARTITION_SIZE_IS_ZERO(70016, "Partition size must be greater than zero"),
     ;
 
     private final Integer code;
