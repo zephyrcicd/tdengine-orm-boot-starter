@@ -12,6 +12,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * TypeHandlerHelper 单元测试
+ *
+ * @author zjarlin
+ * @since 2.4.0
  */
 class TypeHandlerHelperTest {
 
@@ -138,16 +141,45 @@ class TypeHandlerHelperTest {
         @TdTypeHandler(TestConfigTypeHandler.class)
         private TestConfig config;
 
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-        public Integer getAge() { return age; }
-        public void setAge(Integer age) { this.age = age; }
-        public Map<String, Object> getAttributes() { return attributes; }
-        public void setAttributes(Map<String, Object> attributes) { this.attributes = attributes; }
-        public TestConfig getConfig() { return config; }
-        public void setConfig(TestConfig config) { this.config = config; }
-        public Object getPayload() { return payload; }
-        public void setPayload(Object payload) { this.payload = payload; }
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public Integer getAge() {
+            return age;
+        }
+
+        public void setAge(Integer age) {
+            this.age = age;
+        }
+
+        public Map<String, Object> getAttributes() {
+            return attributes;
+        }
+
+        public void setAttributes(Map<String, Object> attributes) {
+            this.attributes = attributes;
+        }
+
+        public TestConfig getConfig() {
+            return config;
+        }
+
+        public void setConfig(TestConfig config) {
+            this.config = config;
+        }
+
+        public Object getPayload() {
+            return payload;
+        }
+
+        public void setPayload(Object payload) {
+            this.payload = payload;
+        }
     }
 
     // 测试配置类
@@ -155,10 +187,21 @@ class TypeHandlerHelperTest {
         private boolean enabled;
         private int timeout;
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean enabled) { this.enabled = enabled; }
-        public int getTimeout() { return timeout; }
-        public void setTimeout(int timeout) { this.timeout = timeout; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(int timeout) {
+            this.timeout = timeout;
+        }
     }
 
     // 自定义TypeHandler用于测试

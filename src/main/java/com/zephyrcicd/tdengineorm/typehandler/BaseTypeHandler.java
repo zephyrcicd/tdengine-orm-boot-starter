@@ -17,7 +17,8 @@ import java.sql.SQLException;
  * </p>
  *
  * @param <T> Java类型
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Slf4j
 public abstract class BaseTypeHandler<T> implements TypeHandler<T> {

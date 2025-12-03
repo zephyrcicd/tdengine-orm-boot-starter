@@ -14,7 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * 使用单例模式，线程安全。
  * </p>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Slf4j
 public final class TypeHandlerRegistry {

@@ -12,7 +12,8 @@ import java.sql.SQLException;
  * </p>
  *
  * @param <T> Java类型
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 public interface TypeHandler<T> {
 

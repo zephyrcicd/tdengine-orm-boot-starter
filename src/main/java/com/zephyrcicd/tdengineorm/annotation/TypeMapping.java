@@ -11,7 +11,8 @@ import java.lang.annotation.Target;
  * 用于 {@link TdPolymorphic} 中定义type值到目标类型的映射关系。
  * </p>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Target({})
 @Retention(RetentionPolicy.RUNTIME)

@@ -7,6 +7,8 @@ import java.sql.Types;
 
 /**
  * Double类型处理器
+ *
+ * @since 2.4.0
  */
 public class DoubleTypeHandler extends BaseTypeHandler<Double> {
 

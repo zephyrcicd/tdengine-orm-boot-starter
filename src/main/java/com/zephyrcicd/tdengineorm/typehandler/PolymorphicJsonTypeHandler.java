@@ -40,7 +40,8 @@ import java.util.function.Function;
  *     .build();
  * </pre>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 public class PolymorphicJsonTypeHandler extends BaseTypeHandler<Object> {
 

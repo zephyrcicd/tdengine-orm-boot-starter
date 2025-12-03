@@ -6,10 +6,16 @@ import org.junit.jupiter.api.Test;
 import java.sql.Timestamp;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * TypeHandlerRegistry 单元测试
+ *
+ * @author zjarlin
+ * @since 2.4.0
  */
 class TypeHandlerRegistryTest {
 
@@ -80,20 +86,37 @@ class TypeHandlerRegistryTest {
     // 自定义类型用于测试
     static class CustomType {
         private String value;
-        public String getValue() { return value; }
-        public void setValue(String value) { this.value = value; }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
     }
 
     // 自定义TypeHandler用于测试
     static class CustomTypeHandler implements TypeHandler<CustomType> {
         @Override
-        public void setParameter(java.sql.PreparedStatement ps, int index, CustomType parameter) {}
+        public void setParameter(java.sql.PreparedStatement ps, int index, CustomType parameter) {
+        }
+
         @Override
-        public CustomType getResult(java.sql.ResultSet rs, String columnName) { return null; }
+        public CustomType getResult(java.sql.ResultSet rs, String columnName) {
+            return null;
+        }
+
         @Override
-        public CustomType getResult(java.sql.ResultSet rs, int columnIndex) { return null; }
+        public CustomType getResult(java.sql.ResultSet rs, int columnIndex) {
+            return null;
+        }
+
         @Override
-        public Object toSqlValue(CustomType value) { return value != null ? value.getValue() : null; }
+        public Object toSqlValue(CustomType value) {
+            return value != null ? value.getValue() : null;
+        }
+
         @Override
         public CustomType fromSqlValue(Object sqlValue) {
             CustomType ct = new CustomType();

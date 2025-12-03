@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
  * 支持缓存以提高性能。
  * </p>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Slf4j
 public final class PolymorphicTypeResolver {

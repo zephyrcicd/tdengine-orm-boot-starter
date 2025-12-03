@@ -1,10 +1,6 @@
 package com.zephyrcicd.tdengineorm.annotation;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 多态字段注解
@@ -27,7 +23,8 @@ import java.lang.annotation.Target;
  * }
  * </pre>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

@@ -14,7 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * 用于在ORM读写时自动应用TypeHandler进行序列化和反序列化。
  * </p>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Slf4j
 public final class TypeHandlerHelper {
@@ -130,12 +131,12 @@ public final class TypeHandlerHelper {
             return false;
         }
         if (String.class.isAssignableFrom(type) ||
-            Number.class.isAssignableFrom(type) ||
-            Boolean.class.isAssignableFrom(type) ||
-            Character.class.isAssignableFrom(type) ||
-            java.util.Date.class.isAssignableFrom(type) ||
-            java.time.temporal.Temporal.class.isAssignableFrom(type) ||
-            byte[].class.isAssignableFrom(type)) {
+                Number.class.isAssignableFrom(type) ||
+                Boolean.class.isAssignableFrom(type) ||
+                Character.class.isAssignableFrom(type) ||
+                java.util.Date.class.isAssignableFrom(type) ||
+                java.time.temporal.Temporal.class.isAssignableFrom(type) ||
+                byte[].class.isAssignableFrom(type)) {
             return false;
         }
         // 其他类型视为复杂类型

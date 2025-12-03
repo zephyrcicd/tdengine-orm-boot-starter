@@ -15,7 +15,8 @@ import java.sql.Types;
  * </p>
  *
  * @param <T> 目标Java类型
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 public class JsonTypeHandler<T> extends BaseTypeHandler<T> {
 

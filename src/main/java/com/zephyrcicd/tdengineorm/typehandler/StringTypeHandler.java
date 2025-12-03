@@ -7,6 +7,9 @@ import java.sql.Types;
 
 /**
  * String类型处理器
+ *
+ * @author zjarlin
+ * @since 2.4.0
  */
 public class StringTypeHandler extends BaseTypeHandler<String> {
 

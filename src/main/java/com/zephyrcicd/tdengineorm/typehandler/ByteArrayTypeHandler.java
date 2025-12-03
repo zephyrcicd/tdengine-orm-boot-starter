@@ -7,6 +7,8 @@ import java.sql.Types;
 
 /**
  * byte[]类型处理器
+ *
+ * @since 2.4.0
  */
 public class ByteArrayTypeHandler extends BaseTypeHandler<byte[]> {
 

@@ -1,9 +1,7 @@
 package com.zephyrcicd.tdengineorm.typehandler;
 
 import org.apache.ibatis.type.BaseTypeHandler;
-import org.apache.ibatis.type.JdbcType;
 
-import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -28,7 +26,8 @@ import java.sql.SQLException;
  * </pre>
  *
  * @param <T> 处理的Java类型
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 public class MybatisTypeHandlerAdapter<T> implements TypeHandler<T> {
 

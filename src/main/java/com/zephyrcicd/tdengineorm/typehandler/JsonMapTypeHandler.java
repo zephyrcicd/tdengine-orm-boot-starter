@@ -20,14 +20,16 @@ import java.util.Map;
  *     <li>向数据库插入或更新时，将Map&lt;String, Object&gt;转换为JSON字符串</li>
  * </ul>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Slf4j
 @SuppressWarnings("unchecked")
 public class JsonMapTypeHandler extends BaseTypeHandler<Map<String, Object>> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final TypeReference<Map<String, Object>> TYPE_REF = new TypeReference<Map<String, Object>>() {};
+    private static final TypeReference<Map<String, Object>> TYPE_REF = new TypeReference<Map<String, Object>>() {
+    };
 
     public JsonMapTypeHandler() {
         super((Class<Map<String, Object>>) (Class<?>) Map.class);

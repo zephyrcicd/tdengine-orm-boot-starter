@@ -4,7 +4,7 @@ package com.zephyrcicd.tdengineorm.template;
  * 元对象字段处理器接口
  * <p>用于在插入操作前自动填充字段值，类似于MyBatis-Plus的MetaObjectHandler</p>
  *
- * @author Zephyr
+ * @author zjarlin
  */
 public interface MetaObjectHandler {
 

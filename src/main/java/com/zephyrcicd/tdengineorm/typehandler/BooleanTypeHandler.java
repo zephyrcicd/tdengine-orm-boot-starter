@@ -7,6 +7,8 @@ import java.sql.Types;
 
 /**
  * Boolean类型处理器
+ *
+ * @since 2.4.0
  */
 public class BooleanTypeHandler extends BaseTypeHandler<Boolean> {
 

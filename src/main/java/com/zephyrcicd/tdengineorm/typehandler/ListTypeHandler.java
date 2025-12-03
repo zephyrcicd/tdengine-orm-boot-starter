@@ -17,7 +17,8 @@ import java.util.List;
  * </p>
  *
  * @param <E> 列表元素类型
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 public class ListTypeHandler<E> extends BaseTypeHandler<List<E>> {
 
@@ -27,7 +28,8 @@ public class ListTypeHandler<E> extends BaseTypeHandler<List<E>> {
     @SuppressWarnings("unchecked")
     public ListTypeHandler(Class<E> elementType) {
         super((Class<List<E>>) (Class<?>) List.class);
-        this.typeReference = new TypeReference<List<E>>() {};
+        this.typeReference = new TypeReference<List<E>>() {
+        };
     }
 
     public ListTypeHandler(TypeReference<List<E>> typeReference) {

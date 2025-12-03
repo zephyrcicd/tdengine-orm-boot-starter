@@ -7,8 +7,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Collection;
-import java.util.Map;
 
 /**
  * Object类型处理器
@@ -19,7 +17,8 @@ import java.util.Map;
  *     <li>复杂对象（POJO、Map、Collection）- 序列化为JSON字符串</li>
  * </ul>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Slf4j
 public class ObjectTypeHandler extends BaseTypeHandler<Object> {

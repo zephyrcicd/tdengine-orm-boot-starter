@@ -12,7 +12,8 @@ import java.sql.Types;
  * </p>
  *
  * @param <E> 枚举类型
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 public class EnumTypeHandler<E extends Enum<E>> extends BaseTypeHandler<E> {
 

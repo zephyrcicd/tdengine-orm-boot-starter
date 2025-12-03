@@ -40,7 +40,8 @@ import java.util.function.Function;
  * handler.handleRow(rs, event);
  * </pre>
  *
- * @author Zephyr
+ * @author zjarlin
+ * @since 2.4.0
  */
 @Slf4j
 public class PolymorphicFieldHandler {

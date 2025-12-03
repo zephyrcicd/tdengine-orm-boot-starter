@@ -1,13 +1,12 @@
 package com.zephyrcicd.tdengineorm.typehandler;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.sql.*;
 
 /**
  * Timestamp类型处理器
+ *
+ * @author zjarlin
+ * @since 2.4.0
  */
 public class TimestampTypeHandler extends BaseTypeHandler<Timestamp> {
 

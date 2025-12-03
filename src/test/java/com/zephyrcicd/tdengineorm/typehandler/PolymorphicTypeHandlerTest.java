@@ -8,10 +8,15 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 多态TypeHandler单元测试
+ *
+ * @author zjarlin
+ * @since 2.4.0
  */
 class PolymorphicTypeHandlerTest {
 
@@ -142,17 +147,34 @@ class PolymorphicTypeHandlerTest {
         )
         private Object data;
 
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
-        public Object getData() { return data; }
-        public void setData(Object data) { this.data = data; }
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public Object getData() {
+            return data;
+        }
+
+        public void setData(Object data) {
+            this.data = data;
+        }
     }
 
     // 基础数据类
     static class BaseData {
         private String id;
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
     }
 
     // 传感器数据类
@@ -160,10 +182,21 @@ class PolymorphicTypeHandlerTest {
         private double temperature;
         private double humidity;
 
-        public double getTemperature() { return temperature; }
-        public void setTemperature(double temperature) { this.temperature = temperature; }
-        public double getHumidity() { return humidity; }
-        public void setHumidity(double humidity) { this.humidity = humidity; }
+        public double getTemperature() {
+            return temperature;
+        }
+
+        public void setTemperature(double temperature) {
+            this.temperature = temperature;
+        }
+
+        public double getHumidity() {
+            return humidity;
+        }
+
+        public void setHumidity(double humidity) {
+            this.humidity = humidity;
+        }
     }
 
     // 告警数据类
@@ -171,9 +204,20 @@ class PolymorphicTypeHandlerTest {
         private String level;
         private String message;
 
-        public String getLevel() { return level; }
-        public void setLevel(String level) { this.level = level; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
+        public String getLevel() {
+            return level;
+        }
+
+        public void setLevel(String level) {
+            this.level = level;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }
