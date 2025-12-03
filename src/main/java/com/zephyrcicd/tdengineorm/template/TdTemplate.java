@@ -393,6 +393,11 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
     }
 
 
+    public <T> int insertUsing(T object) {
+        return insertUsing(object, getDefaultNamingStrategy());
+    }
+
+
     /**
      * 使用 USING 语法插入子表数据（自动创建子表）
      *
