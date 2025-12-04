@@ -11,6 +11,9 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+      MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
 
     steps:
     - name: Checkout code
@@ -22,6 +25,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+        server-id: central
+        server-username: MAVEN_USERNAME
+        server-password: MAVEN_CENTRAL_TOKEN
+        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+        gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
     - name: Extract version from tag
       id: extract_version
@@ -34,7 +42,7 @@ jobs:
     - name: Verify version matches pom.xml
       run: |
         # 检查标签版本是否与 pom.xml 中的版本一致
-        POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        POM_VERSION=$(mvn -N -B -ntp help:evaluate -Dexpression=project.version -DforceStdout)
         TAG_VERSION=${{ steps.extract_version.outputs.VERSION }}
         echo "POM version: $POM_VERSION"
         echo "Tag version: $TAG_VERSION"
@@ -44,50 +52,8 @@ jobs:
         fi
         echo "Version verification passed: $POM_VERSION"
 
-    - name: Build project
-      run: mvn clean package -DskipTests
-      # 注意：由于测试需要 TDengine 数据库，这里跳过测试
-
-    - name: Import GPG key
-      run: |
-        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-      env:
-        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-
-    - name: Configure Maven settings
-      run: |
-        mkdir -p ~/.m2
-        cat > ~/.m2/settings.xml << 'EOF'
-        <settings>
-          <servers>
-            <server>
-              <id>central</id>
-              <username>${env.MAVEN_USERNAME}</username>
-              <password>${env.MAVEN_CENTRAL_TOKEN}</password>
-            </server>
-          </servers>
-          <profiles>
-            <profile>
-              <id>central</id>
-              <activation>
-                <activeByDefault>true</activeByDefault>
-              </activation>
-              <properties>
-                <gpg.keyname>${env.GPG_KEY_ID}</gpg.keyname>
-                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
-              </properties>
-            </profile>
-          </profiles>
-        </settings>
-        EOF
-
     - name: Publish to Maven Central
-      run: mvn deploy -DskipTests
-      env:
-        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-        MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
-        GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      run: mvn -B -ntp clean deploy
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
