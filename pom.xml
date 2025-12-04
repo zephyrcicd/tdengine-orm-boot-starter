@@ -43,7 +43,7 @@
 
     <properties>
         <!-- CI-Friendly Version -->
-        <revision>2.4.0</revision>
+        <revision>2.4.1</revision>
 
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
