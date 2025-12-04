@@ -14,6 +14,8 @@ jobs:
     env:
       MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
       MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+      GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
     steps:
     - name: Checkout code
@@ -25,11 +27,6 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-        server-id: central
-        server-username: MAVEN_USERNAME
-        server-password: MAVEN_CENTRAL_TOKEN
-        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-        gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
     - name: Extract version from tag
       id: extract_version
@@ -51,6 +48,39 @@ jobs:
           exit 1
         fi
         echo "Version verification passed: $POM_VERSION"
+
+    - name: Import GPG key
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      run: |
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+
+    - name: Configure Maven settings
+      run: |
+        mkdir -p ~/.m2
+        cat > ~/.m2/settings.xml <<'EOF'
+        <settings>
+          <servers>
+            <server>
+              <id>central</id>
+              <username>${env.MAVEN_USERNAME}</username>
+              <password>${env.MAVEN_CENTRAL_TOKEN}</password>
+            </server>
+          </servers>
+          <profiles>
+            <profile>
+              <id>central</id>
+              <activation>
+                <activeByDefault>true</activeByDefault>
+              </activation>
+              <properties>
+                <gpg.keyname>${env.GPG_KEY_ID}</gpg.keyname>
+                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+              </properties>
+            </profile>
+          </profiles>
+        </settings>
+        EOF
 
     - name: Publish to Maven Central
       run: mvn -B -ntp clean deploy
