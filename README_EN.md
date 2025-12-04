@@ -8,6 +8,15 @@
 
 > `tdengine-orm-boot-starter` is a semi-ORM framework based on SpringBootJdbc for convenient operation of TDengine data, inspired by MyBatisPlus design
 
+### Project Structure
+
+This is a **Maven multi-module project** containing the following modules:
+
+| Module | Description | Use Case |
+|--------|-------------|----------|
+| `tdengine-orm-annotation` | Lightweight annotation module | Entity-only projects (no Spring required) |
+| `tdengine-orm-boot-starter` | Full Spring Boot Starter | Spring Boot applications |
+
 ### Tech Stack
 
 - spring-boot-starter 2.X Mainly uses SpringBoot's auto-configuration feature. After SpringBoot 2.7, the auto-configuration method has changed, but the old way remains compatible
@@ -16,6 +25,8 @@
 ## Quick Start
 
 ### 1. Add Dependencies
+
+#### Full ORM Functionality (Spring Boot Projects)
 
 **Maven** - Add to `pom.xml`:
 ```xml
@@ -54,6 +65,24 @@ dependencies {
     // TDengine JDBC Driver (Required)
     implementation "com.taosdata.jdbc:taos-jdbcdriver:${taosJdbcdriverVersion}"  // Choose version compatible with your TDengine server
 }
+```
+
+#### Annotations Only (Entity Projects)
+
+If your project only needs to define entity classes (e.g., a standalone API module), you can use the lightweight annotation module:
+
+**Maven**
+```xml
+<dependency>
+    <groupId>io.github.zephyrcicd</groupId>
+    <artifactId>tdengine-orm-annotation</artifactId>
+    <version>${tdengine-orm.version}</version>
+</dependency>
+```
+
+**Gradle**
+```kotlin
+implementation("io.github.zephyrcicd:tdengine-orm-annotation:${tdengineOrmVersion}")
 ```
 
 > 💡 **Latest Version**: Check [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) or [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) for the latest version
@@ -618,17 +647,21 @@ public class Application {
 
 ### Build Instructions
 
-This project uses Maven for build and publication. Common commands:
+This is a Maven multi-module project. Common commands:
 
 ```bash
-# Compile only
+# Compile all modules
 mvn clean compile
 
-# Package (skip tests - tests require TDengine database)
+# Package all modules (skip tests - tests require TDengine database)
 mvn clean package -DskipTests
 
 # Install to local Maven repository (use skip-gpg profile to skip GPG signing for local development)
 mvn clean install -DskipTests -Pskip-gpg
+
+# Compile specific module
+mvn clean compile -pl tdengine-orm-annotation
+mvn clean compile -pl tdengine-orm-boot-starter
 
 # Inspect dependency tree
 mvn dependency:tree

@@ -9,6 +9,15 @@
 > `tdengine-orm-boot-starter` 是一个基于 SpringBootJdbc 的半 ORM 框架，用于便捷操作 TDengine 数据，其设计参考了
 > MyBatisPlus
 
+### 项目结构
+
+本项目是一个 **Maven 多模块项目**，包含以下模块：
+
+| 模块 | 说明 | 使用场景 |
+|------|------|----------|
+| `tdengine-orm-annotation` | 轻量级注解模块 | 仅定义实体类的项目（无需 Spring） |
+| `tdengine-orm-boot-starter` | 完整的 Spring Boot Starter | Spring Boot 应用 |
+
 ### 技术栈
 
 - spring-boot-starter 2.X：主要使用 SpringBoot 的自动装配功能，虽然 SpringBoot 2.7 之后自动装配方式有所修改，但旧的方式仍然兼容
@@ -17,6 +26,8 @@
 ## 快速开始
 
 ### 1. 添加依赖
+
+#### 完整 ORM 功能（Spring Boot 项目）
 
 **Maven** - 在 `pom.xml` 中添加：
 ```xml
@@ -55,6 +66,24 @@ dependencies {
     // TDengine JDBC 驱动（必需）
     implementation "com.taosdata.jdbc:taos-jdbcdriver:${taosJdbcdriverVersion}"  // 请根据您的 TDengine 版本选择
 }
+```
+
+#### 仅注解（实体类项目）
+
+如果您的项目只需要定义实体类（如独立的 API 模块），可以只引入轻量级的注解模块：
+
+**Maven**
+```xml
+<dependency>
+    <groupId>io.github.zephyrcicd</groupId>
+    <artifactId>tdengine-orm-annotation</artifactId>
+    <version>${tdengine-orm.version}</version>
+</dependency>
+```
+
+**Gradle**
+```kotlin
+implementation("io.github.zephyrcicd:tdengine-orm-annotation:${tdengineOrmVersion}")
 ```
 
 > 💡 **最新版本**：请访问 [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter) 或 [GitHub Releases](https://github.com/zephyrcicd/tdengine-orm-boot-starter/releases) 查看最新版本
@@ -664,17 +693,21 @@ public class Application {
 
 ### 构建说明
 
-本项目使用 Maven 进行构建与发布，常用命令如下：
+本项目是一个 Maven 多模块项目，使用 Maven 进行构建与发布，常用命令如下：
 
 ```bash
-# 仅编译
+# 编译所有模块
 mvn clean compile
 
-# 打包（跳过测试，测试需要 TDengine 数据库）
+# 打包所有模块（跳过测试，测试需要 TDengine 数据库）
 mvn clean package -DskipTests
 
 # 安装到本地 Maven 仓库（本地开发需使用 skip-gpg profile 跳过 GPG 签名）
 mvn clean install -DskipTests -Pskip-gpg
+
+# 编译指定模块
+mvn clean compile -pl tdengine-orm-annotation
+mvn clean compile -pl tdengine-orm-boot-starter
 
 # 查看依赖树
 mvn dependency:tree

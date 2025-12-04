@@ -96,9 +96,15 @@ jobs:
         tag_name: ${{ github.ref_name }}
         name: Release ${{ steps.extract_version.outputs.VERSION }}
         body: |
-          ## 📦 TDengine ORM Boot Starter ${{ steps.extract_version.outputs.VERSION }}
+          ## 📦 TDengine ORM ${{ steps.extract_version.outputs.VERSION }}
+
+          本项目是一个多模块 Maven 项目，包含以下模块：
+          - `tdengine-orm-annotation` - 轻量级注解模块（可独立使用）
+          - `tdengine-orm-boot-starter` - 完整的 Spring Boot Starter
 
           ### 🚀 Maven 依赖
+
+          **完整 ORM 功能（Spring Boot 项目）：**
           ```xml
           <dependency>
               <groupId>io.github.zephyrcicd</groupId>
@@ -107,21 +113,37 @@ jobs:
           </dependency>
           ```
 
+          **仅注解（实体类项目）：**
+          ```xml
+          <dependency>
+              <groupId>io.github.zephyrcicd</groupId>
+              <artifactId>tdengine-orm-annotation</artifactId>
+              <version>${{ steps.extract_version.outputs.VERSION }}</version>
+          </dependency>
+          ```
+
           ### 🎯 Gradle 依赖 (Kotlin DSL)
           ```kotlin
+          // 完整功能
           implementation("io.github.zephyrcicd:tdengine-orm-boot-starter:${{ steps.extract_version.outputs.VERSION }}")
+          // 仅注解
+          implementation("io.github.zephyrcicd:tdengine-orm-annotation:${{ steps.extract_version.outputs.VERSION }}")
           ```
 
           ### 📦 Gradle 依赖 (Groovy)
           ```groovy
+          // 完整功能
           implementation 'io.github.zephyrcicd:tdengine-orm-boot-starter:${{ steps.extract_version.outputs.VERSION }}'
+          // 仅注解
+          implementation 'io.github.zephyrcicd:tdengine-orm-annotation:${{ steps.extract_version.outputs.VERSION }}'
           ```
 
           ### 📋 更新内容
           详细更新内容请查看提交历史。
 
           ### 🔗 链接
-          - [Maven Central](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter/${{ steps.extract_version.outputs.VERSION }})
+          - [Maven Central - boot-starter](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-boot-starter/${{ steps.extract_version.outputs.VERSION }})
+          - [Maven Central - annotation](https://central.sonatype.com/artifact/io.github.zephyrcicd/tdengine-orm-annotation/${{ steps.extract_version.outputs.VERSION }})
           - [文档](https://github.com/zephyrcicd/tdengine-orm-boot-starter/blob/main/README.md)
         draft: false
         prerelease: false
