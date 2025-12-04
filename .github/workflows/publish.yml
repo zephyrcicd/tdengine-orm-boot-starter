@@ -42,7 +42,7 @@ jobs:
     - name: Verify version matches pom.xml
       run: |
         # 检查标签版本是否与 pom.xml 中的版本一致
-        POM_VERSION=$(mvn -N -B -ntp help:evaluate -Dexpression=project.version -DforceStdout)
+        POM_VERSION=$(mvn -N -B -ntp -q help:evaluate -Dexpression=project.version -DforceStdout)
         TAG_VERSION=${{ steps.extract_version.outputs.VERSION }}
         echo "POM version: $POM_VERSION"
         echo "Tag version: $TAG_VERSION"
