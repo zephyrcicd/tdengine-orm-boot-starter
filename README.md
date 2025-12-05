@@ -21,8 +21,9 @@
 
 ### 技术栈
 
-- spring-boot-starter 2.X：主要使用 SpringBoot 的自动装配功能，虽然 SpringBoot 2.7 之后自动装配方式有所修改，但旧的方式仍然兼容
-- spring-boot-starter-jdbc 2.x：主要使用 JdbcTemplate 对象
+- Spring Boot AutoConfigure 2.x：直接依赖 `spring-boot-autoconfigure`，复用条件装配、配置绑定等自动化能力（兼容 Spring Boot 2.7+）
+- Spring Boot Starter Data JDBC 2.x：引入 `spring-boot-starter-data-jdbc`（内部包含 `spring-jdbc`），框架主要基于 `JdbcTemplate`
+- 自研模块：`tdengine-orm-annotation` 提供实体注解模型，`tdengine-orm-boot-starter` 负责自动配置与模板能力
 
 ## 快速开始
 

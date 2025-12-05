@@ -19,8 +19,9 @@ This is a **Maven multi-module project** containing the following modules:
 
 ### Tech Stack
 
-- spring-boot-starter 2.X Mainly uses SpringBoot's auto-configuration feature. After SpringBoot 2.7, the auto-configuration method has changed, but the old way remains compatible
-- spring-boot-starter-jdbc 2.x Mainly uses the JdbcTemplate object
+- Spring Boot AutoConfigure 2.x: depends directly on `spring-boot-autoconfigure` to reuse conditional configuration and property binding (compatible with Spring Boot 2.7+)
+- Spring Boot Starter Data JDBC 2.x: pulls in `spring-boot-starter-data-jdbc` (and thus `spring-jdbc`), with `JdbcTemplate` as the core access API
+- First-class modules: `tdengine-orm-annotation` supplies the entity annotations, `tdengine-orm-boot-starter` provides the auto-configuration and template services
 
 ## Quick Start
 
