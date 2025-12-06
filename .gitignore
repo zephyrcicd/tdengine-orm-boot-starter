@@ -46,3 +46,4 @@ build/
 AGENTS.md
 CLAUDE.md
 .claude
+/.fastRequest

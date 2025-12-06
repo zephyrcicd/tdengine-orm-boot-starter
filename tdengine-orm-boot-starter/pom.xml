@@ -14,7 +14,8 @@
     <packaging>jar</packaging>
 
     <name>TDengine ORM Boot Starter</name>
-    <description>A Spring Boot Starter providing a semi-ORM framework for TDengine time-series database operations</description>
+    <description>A Spring Boot Starter providing a semi-ORM framework for TDengine time-series database operations
+    </description>
 
     <dependencies>
         <!-- Internal: Annotation module -->
@@ -44,6 +45,12 @@
             <artifactId>lombok</artifactId>
         </dependency>
 
+<!--        <dependency>-->
+<!--            <groupId>site.addzero</groupId>-->
+<!--            <artifactId>tool-spctx</artifactId>-->
+<!--            <version>2025.11.27</version>-->
+<!--        </dependency>-->
+
         <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -70,6 +77,18 @@
         </dependency>
 
         <!-- Test dependencies -->
+        <dependency>
+            <groupId>site.addzero</groupId>
+            <artifactId>tool-sql-executor</artifactId>
+            <version>2025.11.26</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.taosdata.jdbc</groupId>
+            <artifactId>taos-jdbcdriver</artifactId>
+            <version>3.2.7</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
