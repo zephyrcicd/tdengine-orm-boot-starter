@@ -17,6 +17,14 @@ This is a **Maven multi-module project** containing the following modules:
 | `tdengine-orm-annotation` | Lightweight annotation module | Entity-only projects (no Spring required) |
 | `tdengine-orm-boot-starter` | Full Spring Boot Starter | Spring Boot applications |
 
+### Run the Demo (submodule)
+
+This repository includes a demo as a Git submodule `tdengine-orm-demo`. To run the demo/tests locally:
+
+1. Fetch the submodule: `git submodule update --init --recursive` (run again to sync latest when needed).
+2. Build the demo: `cd tdengine-orm-demo && mvn clean package` (or `mvn test`).
+3. IntelliJ IDEA: if it does not auto-detect the demo, manually import the Maven project at `tdengine-orm-demo/pom.xml` to see sources and tests.
+
 ### Tech Stack
 
 - Spring Boot AutoConfigure 2.x: depends directly on `spring-boot-autoconfigure` to reuse conditional configuration and property binding (compatible with Spring Boot 2.7+)

@@ -19,6 +19,14 @@
 | `tdengine-orm-annotation` | 轻量级注解模块 | 仅定义实体类的项目（无需 Spring） |
 | `tdengine-orm-boot-starter` | 完整的 Spring Boot Starter | Spring Boot 应用 |
 
+### 运行 Demo（子模块）
+
+仓库包含演示子模块 `tdengine-orm-demo`（以 Git submodule 方式引入）。如果需要本地跑 demo 或演示测试：
+
+1. 获取子模块代码：`git submodule update --init --recursive`（或在已有仓库中执行同样指令同步最新代码）。
+2. 进入子模块运行：`cd tdengine-orm-demo && mvn clean package`（或 `mvn test`）。
+3. 使用 IntelliJ IDEA 打开主仓库时，如未自动识别 demo，需要手动 Import 该 Maven 项目（`tdengine-orm-demo/pom.xml`）才能看到源码与测试。
+
 ### 技术栈
 
 - Spring Boot AutoConfigure 2.x：直接依赖 `spring-boot-autoconfigure`，复用条件装配、配置绑定等自动化能力（兼容 Spring Boot 2.7+）
