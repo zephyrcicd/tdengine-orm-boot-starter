@@ -1,0 +1,3 @@
+[submodule "tdengine-orm-demo"]
+	path = tdengine-orm-demo
+	url = https://github.com/zephyrcicd/tdengine-orm-demo.git
