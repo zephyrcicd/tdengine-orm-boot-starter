@@ -13,6 +13,7 @@ import com.zephyrcicd.tdengineorm.strategy.DefaultDynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.DefaultTagNameStrategy;
 import com.zephyrcicd.tdengineorm.strategy.DynamicNameStrategy;
 import com.zephyrcicd.tdengineorm.util.AssertUtil;
+import com.zephyrcicd.tdengineorm.util.TdMigrateUtil;
 import com.zephyrcicd.tdengineorm.util.TdSqlUtil;
 import com.zephyrcicd.tdengineorm.wrapper.AbstractTdQueryWrapper;
 import com.zephyrcicd.tdengineorm.wrapper.TdQueryWrapper;
@@ -767,6 +768,32 @@ public class TdTemplate extends AbstractTdJdbcTemplate {
         }
 
         return resultList.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /**
+     * 交换表中两列的数据位置
+     * 通过创建新表、插入数据、删除旧表、重命名的方式实现列交换
+     *
+     * @param tableName 表名
+     * @param col1      第一列名
+     * @param col2      第二列名
+     * @throws RuntimeException 如果交换失败
+     */
+    public void swapColumn(String tableName, String col1, String col2) {
+        TdMigrateUtil.swapColumn(namedParameterJdbcTemplate, tableName, col1, col2);
+    }
+
+    /**
+     * 重命名表中的列
+     * 通过创建新表、插入数据、删除旧表、重命名的方式实现列重命名
+     *
+     * @param tableName 表名
+     * @param oldColumn 旧列名
+     * @param newColumn 新列名
+     * @throws RuntimeException 如果重命名失败
+     */
+    public void renameColumn(String tableName, String oldColumn, String newColumn) {
+        TdMigrateUtil.renameColumn(namedParameterJdbcTemplate, tableName, oldColumn, newColumn);
     }
 
     public <T> int deleteByTs(Class<T> clazz, Long ts) {
